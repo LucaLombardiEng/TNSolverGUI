@@ -1,4 +1,4 @@
-from tkinter import Tk, LabelFrame, Label, Frame, Canvas, Scrollbar, VERTICAL, HORIZONTAL
+from tkinter import Tk, LabelFrame, Frame, Canvas, Scrollbar
 from tkinter.font import Font
 import random
 import gUtility

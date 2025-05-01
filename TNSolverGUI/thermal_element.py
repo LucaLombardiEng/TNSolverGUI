@@ -1,7 +1,7 @@
 #
 # Graphical Utility to manage the thermal elements
 #
-from tkinter import Tk, Canvas, Label
+from tkinter import Tk, Label
 from tkinter.font import Font
 import gUtility
 import numpy as np

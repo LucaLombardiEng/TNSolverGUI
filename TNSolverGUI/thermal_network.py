@@ -12,7 +12,6 @@
      - zoom in/out, fit the graphic area
 
 """
-import copy
 from tkinter import Tk, Frame, Menu, PanedWindow, VERTICAL, HORIZONTAL, BOTH, messagebox
 from tkinter.font import Font
 from graphic_frame import GraphicWindow
@@ -24,7 +23,6 @@ from property_editor import PropertyEditor
 from solver_settings import SolverSetting
 from graphic_plots import FunctionPlotter
 from time_slider import ScaleFrame
-from dxf_viewer import DXFViewer
 from TNSolver_code.utility_functions import verdate
 import gUtility
 import numpy as np

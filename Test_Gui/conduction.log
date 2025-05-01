@@ -7,7 +7,7 @@
 *                                                        *
 **********************************************************
 
-Model run started at 06:56 PM, on April 05, 2025
+Model run started at 11:30 PM, on May 01, 2025
 
 Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction.inp
 
@@ -19,12 +19,12 @@ Starting solution of a steady thermal network model ...
   Iteration     Residual
   --------- ------------
 
-       1    49.394
-       2    0.15305
-       3    0.00133486
-       4    9.23185e-06
-       5    5.95535e-08
-       6    3.74942e-10
+       1    6.10218
+       2    0.0778548
+       3    0.000598015
+       4    3.98853e-06
+       5    2.54124e-08
+       6    1.59255e-10
 Results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction.out
 
 Node results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_nd.csv

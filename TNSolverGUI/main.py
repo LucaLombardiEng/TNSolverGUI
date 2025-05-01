@@ -33,7 +33,7 @@ def win_about():
     mail = "luca.lombardi.ing@gmail.com"
 
     win = Toplevel(root, background="white", borderwidth=2)
-    win.iconbitmap('Pictures/icon_TNS.ico')
+    win.iconbitmap('../Pictures/icon_TNS.ico')
     win.wm_title("About...")
 
     def win_exit():
@@ -44,7 +44,7 @@ def win_about():
     title.config(font=("Helvetica", 18))
     title.grid(row=1, column=1, columnspan=2, sticky="ew")
 
-    img_TNS = Image.open("Pictures/TNS_logo.png").resize((382, 300), Image.Resampling.BICUBIC)
+    img_TNS = Image.open("../Pictures/TNS_logo.png").resize((382, 300), Image.Resampling.BICUBIC)
     img_TNS = ImageTk.PhotoImage(img_TNS)
     left_label = Label(win, image=img_TNS, bg="white")
     left_label.grid(row=2, column=1)
