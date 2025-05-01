@@ -1,0 +1,63 @@
+! File generated automatically by the TNSolver GUI
+! Date: March 15, 2025
+! Time: 15:02:19
+! Original file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection-radiation.inp
+! -----------------------------------------------------------------------------
+Begin Solution Parameters
+   title = title
+   type = steady
+   units = SI
+   T units = C
+   nonlinear convergence = 1e-9
+   maximum nonlinear iterations = 100
+   Stefan-Boltzmann = 5.6704e-08
+   gravity = 9.80665
+   graphviz output = no
+   plot functions = no
+End Solution Parameters
+! -----------------------------------------------------------------------------
+Begin Nodes 
+   1	air	0	! air node
+   2	air	0	! air node
+   3	air	0	! air node
+   4	air	0	! air node
+   5	air	0	! air node
+   6	air	0	! air node
+   7	air	0	! air node
+   8	air	0	! air node
+End Nodes 
+! -----------------------------------------------------------------------------
+Begin Conductors 
+   1	 IFCduct 	3	2	air	0.258	0.025	0.0325	 ! material, velocity, Dh, A
+   2	 EFCcyl 	4	2	air	0.658	0.032	0.005600	 ! material, velocity, D, A
+   3	 EFCdiamond 	5	2	water	1	1	0.078500	 ! material, velocity, D, A
+   4	 EFCimpjet 	6	2	air	2.5	0.00125	0.015	0.076	 ! material, velocity, D, H, r
+   5	 EFCplate 	7	2	air	3.5	0	0.250	0.841	 ! material, velocity, X begin, X end, A
+   6	 EFCsphere 	8	2	air	0.55	0.0135	 ! material, velocity, D
+   7	 conduction 	1	3	steel	1	0.000258	 ! material, L, A 
+   8	 conduction 	1	4	water	1	0.003500	 ! material, L, A 
+   9	 conduction 	1	5	air	1	0.006500	 ! material, L, A 
+   10	 surfrad 	1	6	0.81	0.737	 ! emissivity, A
+   11	 radiation 	1	7	0.8	0.2	1	 !  script-F, A
+   12	 INCvenc 	1	8	air	1	0.250	0.013500	 ! material, W, H, A
+End Conductors 
+! -----------------------------------------------------------------------------
+Begin Boundary Conditions 
+   fixed_T	100	1	! air node
+   fixed_T	5	2	! air node
+End Boundary Conditions 
+! -----------------------------------------------------------------------------
+!Begin Sources 
+!End Sources 
+! -----------------------------------------------------------------------------
+!Begin Initial Conditions 
+!End Initial Conditions 
+! -----------------------------------------------------------------------------
+!Begin Radiation Enclosure 
+!End Radiation Enclosure 
+! -----------------------------------------------------------------------------
+!Begin Functions 
+!End Functions 
+! -----------------------------------------------------------------------------
+!Begin Material 
+!End Material 

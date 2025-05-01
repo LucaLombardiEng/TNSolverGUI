@@ -1,0 +1,46 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 11:23 PM, on April 08, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection.inp
+
+Initializing the thermal network model ...
+
+WARNING: EFCdiamond - Re number = 67333.75445601929, is out of range: 6,000 - 60,000
+Starting solution of a steady thermal network model ...
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+WARNING: EFCdiamond - Re number = 67333.75445601929, is out of range: 6,000 - 60,000
+       1    0.868056
+WARNING: EFCdiamond - Re number = 61680.48832401381, is out of range: 6,000 - 60,000
+       2    0.318693
+WARNING: EFCdiamond - Re number = 61608.3455538157, is out of range: 6,000 - 60,000
+       3    0.00263985
+WARNING: EFCdiamond - Re number = 61607.45733019088, is out of range: 6,000 - 60,000
+       4    3.31977e-05
+WARNING: EFCdiamond - Re number = 61607.446409717675, is out of range: 6,000 - 60,000
+       5    4.07666e-07
+WARNING: EFCdiamond - Re number = 61607.4462754698, is out of range: 6,000 - 60,000
+       6    5.01189e-09
+WARNING: EFCdiamond - Re number = 61607.446273819456, is out of range: 6,000 - 60,000
+       7    6.14322e-11
+Results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection.out
+
+Node results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection_nd.csv
+
+Conductor results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection_cond.csv
+
+Restart has been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection.rst
+
+All done ...
+

@@ -1,0 +1,37 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 06:56 PM, on April 05, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction.inp
+
+Initializing the thermal network model ...
+
+Starting solution of a steady thermal network model ...
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    49.394
+       2    0.15305
+       3    0.00133486
+       4    9.23185e-06
+       5    5.95535e-08
+       6    3.74942e-10
+Results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction.out
+
+Node results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_nd.csv
+
+Conductor results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_cond.csv
+
+Restart has been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction.rst
+
+All done ...
+

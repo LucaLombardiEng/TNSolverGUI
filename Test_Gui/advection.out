@@ -1,0 +1,306 @@
+
+**********************************************************
+*                                                        *
+*          TNSolver - A Thermal Network Solver           *
+*                                                        *
+*              Version 0.9.3, August 19, 2018            *
+*                                                        *
+**********************************************************
+
+Model run finished at  6:39 PM, on March 23, 2025
+
+*** Solution Parameters ***
+
+  Title: title
+
+  Type                          =  steady
+  Units                         =  SI
+  Temperature units             =  C
+  Nonlinear convergence         =  1e-09
+  Maximum nonlinear iterations  =  150
+  Gravity                       =  9.80665 (m/s^2)
+  Stefan-Boltzmann constant     =  5.6704e-08 (W/m^2-K^4)
+
+*** Nodes ***
+
+                        Volume   Temperature
+   Label    Material     (m^3)       (C)
+ --------- ---------- ---------- -----------
+         1        air          0          90
+         2        air          0          20
+         3        air          0     78.9562
+         4        air          0     78.9562
+         5        air          0     78.9562
+         6        air          0        45.8
+
+*** Conductors ***
+
+                                                 Q_ij
+    Label        Type       Node i     Node j      (W)
+ ---------- ------------- ---------- ---------- ----------
+          1     advection          1          3    8965.31
+          2     advection          3          4          0
+          3     advection          4          5          0
+          4       outflow          5          2    48112.6
+          5    convection          6          3   -7460.15
+
+*** Boundary Conditions ***
+
+    Type       Parameter(s)        Node(s)
+ ---------- ------------------ --------------------
+    fixed_T       90           1
+    fixed_T       20           2
+    fixed_T     45.8           6
+
+*** Initial Conditions ***
+
+ Temperature       Node (s)
+ -----------  --------------------
+          0   1 2 3 4 5 6
+
+*** Conductor Parameters ***
+
+*** Control Volume Energy Balances ***
+
+Energy balance for node: 1
+
+    nd_i   -  conductor -     nd_j        T_i        T_j       Q_ij    direction
+         1 -          1 -          3,         90    78.9562    8965.31    out
+
+Energy balance for node: 2
+
+    nd_i   -  conductor -     nd_j        T_i        T_j       Q_ij    direction
+         5 -          4 -          2,    78.9562         20    48112.6    in
+
+Energy balance for node: 3
+
+    nd_i   -  conductor -     nd_j        T_i        T_j       Q_ij    direction
+         1 -          1 -          3,         90    78.9562    8965.31    in
+         3 -          2 -          4,    78.9562    78.9562          0    out
+         6 -          5 -          3,       45.8    78.9562   -7460.15    out
+
+Energy balance for node: 4
+
+    nd_i   -  conductor -     nd_j        T_i        T_j       Q_ij    direction
+         3 -          2 -          4,    78.9562    78.9562          0    in
+         4 -          3 -          5,    78.9562    78.9562          0    out
+
+Energy balance for node: 5
+
+    nd_i   -  conductor -     nd_j        T_i        T_j       Q_ij    direction
+         4 -          3 -          5,    78.9562    78.9562          0    in
+         5 -          4 -          2,    78.9562         20    48112.6    out
+
+Energy balance for node: 6
+
+    nd_i   -  conductor -     nd_j        T_i        T_j       Q_ij    direction
+         6 -          5 -          3,       45.8    78.9562   -7460.15    in
+
+*** Material Library Properties Used in the Model ***
+
+Name  = air
+State = gas
+
+Thermal Conductivity
+  Type  = monotonic spline
+     (K)      (W/m-K)
+    100.0     0.00941
+    150.0     0.01406
+    200.0     0.01836
+    250.0     0.02241
+    260.0     0.02329
+    280.0     0.02473
+    300.0     0.02623
+    320.0     0.02753
+    340.0     0.02888
+    350.0     0.02984
+    400.0     0.03328
+    450.0     0.03656
+
+Density
+  Type  = monotonic spline
+     (K)      (kg/m^3)
+    100.0       3.605
+    150.0       2.368
+    200.0       1.769
+    250.0       1.412
+    260.0       1.358
+    280.0       1.261
+    300.0       1.177
+    320.0       1.103
+    340.0       1.038
+    350.0       1.008
+    400.0      0.8821
+    450.0       0.784
+
+Constant Pressure Specific Heat
+  Type  = monotonic spline
+     (K)      (J/kg-K)
+    100.0     1039.00
+    150.0     1012.00
+    200.0     1007.00
+    250.0     1006.00
+    260.0     1006.00
+    280.0     1006.00
+    300.0     1007.00
+    320.0     1008.00
+    340.0     1009.00
+    350.0     1009.00
+    400.0     1014.00
+    450.0     1021.00
+
+Constant Volume Specific Heat
+  Type  = monotonic spline
+     (K)      (J/kg-K)
+    100.0     728.193
+    150.0     717.536
+    200.0     716.162
+    250.0     716.404
+    260.0     716.601
+    280.0     717.164
+    300.0     717.972
+    320.0     719.051
+    340.0     720.422
+    350.0     721.222
+    400.0     726.411
+    450.0     733.548
+
+Viscosity
+  Type  = monotonic spline
+     (K)      (kg/m-s)
+    100.0    7.11e-06
+    150.0   1.035e-05
+    200.0   1.333e-05
+    250.0   1.606e-05
+    260.0   1.649e-05
+    280.0   1.747e-05
+    300.0   1.857e-05
+    320.0   1.935e-05
+    340.0   2.025e-05
+    350.0    2.09e-05
+    400.0    2.31e-05
+    450.0   2.517e-05
+
+Volumetric Thermal Expansion Coefficient, beta
+  Type  = monotonic spline
+     (K)       (1/K)
+    100.0        0.01
+    150.0    0.006667
+    200.0       0.005
+    250.0       0.004
+    260.0    0.003846
+    280.0    0.003571
+    300.0    0.003333
+    320.0    0.003125
+    340.0    0.002941
+    350.0    0.002857
+    400.0      0.0025
+    450.0    0.002222
+
+Prandtl number, Pr
+  Type  = monotonic spline
+     (K)      (dimensionless)
+    100.0       0.784
+    150.0       0.745
+    200.0       0.731
+    250.0       0.721
+    260.0       0.712
+    280.0       0.711
+    300.0       0.713
+    320.0       0.708
+    340.0       0.707
+    350.0       0.707
+    400.0       0.704
+    450.0       0.703
+
+Reference:
+Table A.6, page 718, in:
+J. H. Lienhard, IV and J. H. Lienhard, V. A Heat Transfer Textbook.
+  Phlogiston Press, Cambridge, Massachusetts, fourth edition, 2012.
+  version 2.02, available at: http://ahtt.mit.edu
+
+Name  = water
+State = liquid
+
+Thermal Conductivity
+  Type  = monotonic spline
+     (K)      (W/m-K)
+    273.1       0.561
+    275.0      0.5645
+    285.0      0.5835
+    295.0      0.6017
+    305.0      0.6184
+    320.0      0.6396
+    340.0      0.6605
+    360.0      0.6737
+    373.1      0.6791
+
+Density
+  Type  = monotonic spline
+     (K)      (kg/m^3)
+    273.1       999.8
+    275.0       999.9
+    285.0       999.5
+    295.0       997.8
+    305.0         995
+    320.0       989.3
+    340.0       979.5
+    360.0       967.4
+    373.1       958.3
+
+Constant Pressure Specific Heat
+  Type  = monotonic spline
+     (K)      (J/kg-K)
+    273.1     4220.00
+    275.0     4214.00
+    285.0     4193.00
+    295.0     4183.00
+    305.0     4180.00
+    320.0     4181.00
+    340.0     4189.00
+    360.0     4202.00
+    373.1     4216.00
+
+Viscosity
+  Type  = monotonic spline
+     (K)      (kg/m-s)
+    273.1    0.001787
+    275.0    0.001682
+    285.0    0.001239
+    295.0   0.0009579
+    305.0   0.0007669
+    320.0    0.000577
+    340.0    0.000422
+    360.0   0.0003261
+    373.1   0.0002817
+
+Volumetric Thermal Expansion Coefficient, beta
+  Type  = monotonic spline
+     (K)       (1/K)
+    280.0    4.36e-05
+    285.0    0.000112
+    295.0    0.000226
+    305.0    0.000319
+    320.0    0.000436
+    340.0    0.000565
+    360.0    0.000679
+    373.1    0.000751
+
+Prandtl number, Pr
+  Type  = monotonic spline
+     (K)      (dimensionless)
+    273.1       13.47
+    275.0       12.55
+    285.0        8.91
+    295.0        6.66
+    305.0        5.18
+    320.0        3.77
+    340.0        2.68
+    360.0        2.03
+    373.1        1.75
+
+Reference:
+Table A.3, page 713, in:
+J. H. Lienhard, IV and J. H. Lienhard, V. A Heat Transfer Textbook.
+  Phlogiston Press, Cambridge, Massachusetts, fourth edition, 2012.
+  version 2.02, available at: http://ahtt.mit.edu

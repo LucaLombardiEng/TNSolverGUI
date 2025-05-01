@@ -1,0 +1,54 @@
+! File generated automatically by the TNSolver GUI
+! Date: April 08, 2025
+! Time: 23:23:58
+! Original file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection.inp
+! -----------------------------------------------------------------------------
+Begin Solution Parameters
+   title = Steady state model - pure conduction elements
+   type = steady
+   units = SI
+   T units = C
+   nonlinear convergence = 1e-9
+   maximum nonlinear iterations = 100
+   Stefan-Boltzmann = 5.6704e-08
+   gravity = 9.80665
+   graphviz output = no
+   plot functions = no
+End Solution Parameters
+! -----------------------------------------------------------------------------
+Begin Nodes 
+   1	steel	0.025	! air node
+   2	air	0.0	! air node
+   3	steel	0.0002658	! air node
+   4	water	0.25	! air node
+   5	air	0.0	! air node
+End Nodes 
+! -----------------------------------------------------------------------------
+Begin Conductors 
+   1	 convection 	1	3	850.0	0.015688999999999998	 ! HTC, A
+   2	 IFCduct 	3	2	water	5.0	0.038	0.0006	 ! material, velocity, Dh, A
+   3	 EFCcyl 	1	4	water	4.65	0.016579999999999998	0.15982	 ! material, velocity, D, A
+   4	 EFCdiamond 	4	2	air	10.587	0.08	0.12345687	 ! material, velocity, D, A
+   5	 EFCsphere 	1	5	air	7.5	0.12	 ! material, velocity, D
+   6	 EFCplate 	5	2	air	0.01	1.0	6.944444444444445	1.2	 ! material, velocity, X begin, X end, A
+End Conductors 
+! -----------------------------------------------------------------------------
+Begin Boundary Conditions 
+   fixed_T	-15.58	2	! air node
+End Boundary Conditions 
+! -----------------------------------------------------------------------------
+Begin Sources 
+   Qsrc	500.0	1	! air node
+End Sources 
+! -----------------------------------------------------------------------------
+Begin Initial Conditions 
+End Initial Conditions 
+! -----------------------------------------------------------------------------
+Begin Radiation Enclosure 
+End Radiation Enclosure 
+! -----------------------------------------------------------------------------
+Begin Functions 
+End Functions 
+! -----------------------------------------------------------------------------
+Begin Material 
+End Material 

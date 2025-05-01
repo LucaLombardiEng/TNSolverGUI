@@ -1,0 +1,50 @@
+! File generated automatically by the TNSolver GUI
+! Date: October 26, 2024
+! Time: 17:31:57
+! Original file: C:\Users\Luca_Lombardi\Documents\My_Python\Test_Gui\test05.inp
+! -----------------------------------------------------------------------------
+Begin Solution Parameters
+   title = title
+   type = steady
+   units = SI
+   T units = C
+   nonlinear convergence = 1e-9
+   maximum nonlinear iterations = 100
+   Stefan - Boltzmann = 5.6704e-08
+   gravity = 9.80665
+   graphviz output = no
+   plot functions = no
+End Solution Parameters
+! -----------------------------------------------------------------------------
+Begin Nodes 
+   1	air	0	! air node
+   2	air	0	! air node
+   3	air	0	! air node
+End Nodes 
+! -----------------------------------------------------------------------------
+Begin Conductors 
+   1	 conduction 	1	2		1	1	 ! material, L, A 
+   2	 conduction 	1	2		1	2	1	 ! material, ri, ro, L 
+   3	 advection 	1	2		1	1	 !  material, velocity, A
+   4	 surfrad 	1	2	1	1	 ! emissivity, A
+   5	 conduction 	3	2		1	1	 ! material, L, A 
+End Conductors 
+! -----------------------------------------------------------------------------
+Begin Boundary Conditions 
+End Boundary Conditions 
+! -----------------------------------------------------------------------------
+Begin Sources 
+   q_dot	0	3	! air node
+End Sources 
+! -----------------------------------------------------------------------------
+Begin Initial Conditions 
+End Initial Conditions 
+! -----------------------------------------------------------------------------
+Begin Radiation Enclosure 
+End Radiation Enclosure 
+! -----------------------------------------------------------------------------
+Begin Functions 
+End Functions 
+! -----------------------------------------------------------------------------
+Begin Material 
+End Material 

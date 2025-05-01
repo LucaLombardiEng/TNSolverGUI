@@ -1,0 +1,69 @@
+! File generated automatically by the TNSolver GUI
+! Date: March 29, 2025
+! Time: 23:45:40
+! Original file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection2.inp
+! -----------------------------------------------------------------------------
+Begin Solution Parameters
+   title = title
+   type = steady
+   units = SI
+   T units = C
+   nonlinear convergence = 1e-9
+   maximum nonlinear iterations = 100
+   Stefan-Boltzmann = 5.6704e-08
+   gravity = 9.80665
+   graphviz output = no
+   plot functions = no
+End Solution Parameters
+! -----------------------------------------------------------------------------
+Begin Nodes 
+   1	air	0.0	! air node
+   2	air	0.0	! air node
+   3	air	0.0	! air node
+   4	air	0.1	! air node
+   5	375.0	0.15	! air node
+   6	water	0.1	! air node
+   7	steel	1.2500000000000002e-07	! air node
+   8	air	0.25	! air node
+   10	air	0.2	! air node
+   11	steel	0.12	! Heating Plate
+End Nodes 
+! -----------------------------------------------------------------------------
+Begin Conductors 
+   1	 conduction 	3	4	150.0	0.15	0.1	 ! k, L, A 
+   2	 conduction 	4	2	steel	0.168	0.25	 ! material, L, A 
+   3	 ENChcyl 	1	5	air	0.0125	0.125	 ! material, D, A
+   4	 ENChplatedown 	5	2	air	0.125	0.0012599999999999998	 ! material, L=A/P, A
+   5	 ENChplateup 	1	6	air	0.02	0.15	 ! material, L=A/P, A
+   6	 ENCiplatedown 	6	2	air	0.555	0.025	12.0	0.034999999999999996	 ! material, H, L=A/P, angle, A
+   7	 ENCiplateup 	1	7	air	0.845	0.169	18.0	0.00258	 ! material, H, L=A/P, angle, A
+   8	 ENCsphere 	7	2	water	0.25	 ! material, D
+   9	 ENCvplate 	1	2	water	0.55	0.0065	 ! material, L, A
+   10	 conduction 	8	5	steel	0.000136	0.0125	 ! material, L, A 
+   11	 conduction 	10	4	water	0.44	0.333	 ! material, L, A 
+   12	 conduction 	11	4	steel	0.002	0.126	 ! material, L, A 
+End Conductors 
+! -----------------------------------------------------------------------------
+Begin Boundary Conditions 
+   fixed_T	176.66666666666674	1	! air node
+   fixed_T	60.183333333333394	2	! air node
+   heat_flux	15	0.16	3	! air node
+End Boundary Conditions 
+! -----------------------------------------------------------------------------
+Begin Sources 
+   Qsrc	0.125	8	! air node
+   qdot	10.0	10	! air node
+   tstatQ	3.758	4	25.0	30.0	11	! Power, thermostat node, Ton, Toff
+End Sources 
+! -----------------------------------------------------------------------------
+Begin Initial Conditions 
+End Initial Conditions 
+! -----------------------------------------------------------------------------
+Begin Radiation Enclosure 
+End Radiation Enclosure 
+! -----------------------------------------------------------------------------
+Begin Functions 
+End Functions 
+! -----------------------------------------------------------------------------
+Begin Material 
+End Material 

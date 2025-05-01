@@ -1,0 +1,16 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 03:20 PM, on March 16, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection-radiation.inp
+
+Initializing the thermal network model ...
+
+Starting solution of a steady thermal network model ...

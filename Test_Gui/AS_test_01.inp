@@ -1,0 +1,71 @@
+! File generated automatically by the TNSolver GUI
+! Date: November 09, 2024
+! Time: 18:51:40
+! Original file: C:\Users\Luca_Lombardi\Documents\My_Python\Test_Gui\AS_test_01.inp
+! -----------------------------------------------------------------------------
+Begin Solution Parameters
+   title = This is just an example
+   type = steady
+   units = SI
+   T units = C
+   nonlinear convergence = 1e-9
+   maximum nonlinear iterations = 100
+   Stefan-Boltzmann = 5.6704e-08
+   gravity = 9.80665
+   graphviz output = no
+   plot functions = no
+End Solution Parameters
+! -----------------------------------------------------------------------------
+Begin Nodes 
+   1	steel	0	! air node
+   2	steel	0	! air node
+   3	steel	0	! air node
+   4	steel	0	! air node
+   5	air	0	! air node
+   6	water	0	! air node
+   7	water	0	! air node
+   8	water	0	! air node
+   9	steel	0	! air node
+   10	air	0	! air node
+   11	air	0	! air node
+End Nodes 
+! -----------------------------------------------------------------------------
+Begin Conductors 
+   1	 conduction 	1	2	steel	1	1	 ! material, L, A 
+   2	 conduction 	2	3	steel	1	1	 ! material, L, A 
+   3	 conduction 	3	4	steel	1	1	 ! material, L, A 
+   4	 convection 	5	1	44	1	 ! HTC, A
+   5	 convection 	5	2	55	1	 ! HTC, A
+   6	 convection 	5	3	66	1	 ! HTC, A
+   7	 convection 	5	4	77	1	 ! HTC, A
+   8	 convection 	5	9	12	1	 ! HTC, A
+   9	 advection 	6	7	water	1	1	 !  material, velocity, A
+   10	 advection 	7	8	water	1	1	 !  material, velocity, A
+   11	 outflow 	8	11	water	1	1	 !  material, velocity, A
+   12	 IFCduct 	4	6	water	0.15	0.01	1	 ! material, velocity, Dh, A
+   13	 IFCduct 	3	7	water	0.15	0.01	1	 ! material, velocity, Dh, A
+   14	 IFCduct 	2	8	water	0.150	0.01	1	 ! material, velocity, Dh, A
+   15	 advection 	10	6	water	1	1	 !  material, velocity, A
+   16	 conduction 	9	1	steel	1	1	 ! material, L, A 
+End Conductors 
+! -----------------------------------------------------------------------------
+Begin Boundary Conditions 
+   fixed_T	23.3	5	! air node
+   fixed_T	22.0	10	! air node
+   fixed_T	22.0	11	! air node
+End Boundary Conditions 
+! -----------------------------------------------------------------------------
+!Begin Sources 
+!End Sources 
+! -----------------------------------------------------------------------------
+!Begin Initial Conditions 
+!End Initial Conditions 
+! -----------------------------------------------------------------------------
+!Begin Radiation Enclosure 
+!End Radiation Enclosure 
+! -----------------------------------------------------------------------------
+!Begin Functions 
+!End Functions 
+! -----------------------------------------------------------------------------
+!Begin Material 
+!End Material

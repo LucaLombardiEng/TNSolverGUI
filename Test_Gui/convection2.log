@@ -1,0 +1,60 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 11:45 PM, on March 29, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection2.inp
+
+Initializing the thermal network model ...
+
+Starting solution of a steady thermal network model ...
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.50688
+WARNING: ENChplateup - Ra number = 6130.509289347529, is out of range: 1.0E4 - 1.0e11.
+       2    0.0388008
+WARNING: ENChplateup - Ra number = 1621.8123087432025, is out of range: 1.0E4 - 1.0e11.
+       3    0.00453675
+WARNING: ENChplateup - Ra number = 2329.4633251285777, is out of range: 1.0E4 - 1.0e11.
+       4    0.00137559
+WARNING: ENChplateup - Ra number = 2124.271229852862, is out of range: 1.0E4 - 1.0e11.
+       5    0.000338642
+WARNING: ENChplateup - Ra number = 2175.3986448923933, is out of range: 1.0E4 - 1.0e11.
+       6    8.80198e-05
+WARNING: ENChplateup - Ra number = 2162.141543469911, is out of range: 1.0E4 - 1.0e11.
+       7    2.2562e-05
+WARNING: ENChplateup - Ra number = 2165.544176373906, is out of range: 1.0E4 - 1.0e11.
+       8    5.80461e-06
+WARNING: ENChplateup - Ra number = 2164.6685435237405, is out of range: 1.0E4 - 1.0e11.
+       9    1.49207e-06
+WARNING: ENChplateup - Ra number = 2164.8937266124626, is out of range: 1.0E4 - 1.0e11.
+      10    3.83646e-07
+WARNING: ENChplateup - Ra number = 2164.8358070968106, is out of range: 1.0E4 - 1.0e11.
+      11    9.86429e-08
+WARNING: ENChplateup - Ra number = 2164.8507039546025, is out of range: 1.0E4 - 1.0e11.
+      12    2.53644e-08
+WARNING: ENChplateup - Ra number = 2164.846872449473, is out of range: 1.0E4 - 1.0e11.
+      13    6.52223e-09
+WARNING: ENChplateup - Ra number = 2164.8478579182483, is out of range: 1.0E4 - 1.0e11.
+      14    1.67718e-09
+WARNING: ENChplateup - Ra number = 2164.8476044540294, is out of range: 1.0E4 - 1.0e11.
+      15    4.31298e-10
+Results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection2.out
+
+Node results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection2_nd.csv
+
+Conductor results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection2_cond.csv
+
+Restart has been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection2.rst
+
+All done ...
+

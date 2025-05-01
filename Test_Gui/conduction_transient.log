@@ -1,0 +1,119 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 10:15 AM, on April 12, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_transient.inp
+
+Initializing the thermal network model ...
+
+Starting solution of a transient thermal network model ...
+
+Taking a time step to: 0.5 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    29.0717
+       2    0.00100039
+       3    6.5664e-08
+       4    9.89892e-11
+Taking a time step to: 1.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.03067
+       2    1.81549e-07
+       3    1.20119e-10
+Taking a time step to: 1.5 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02937
+       2    1.81649e-07
+       3    3.11181e-11
+Taking a time step to: 2.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02808
+       2    1.81445e-07
+       3    5.49996e-11
+Taking a time step to: 2.5 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02678
+       2    1.81393e-07
+       3    3.1998e-11
+Taking a time step to: 3.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02549
+       2    1.81513e-07
+       3    9.11064e-11
+Taking a time step to: 3.5 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02419
+       2    1.81386e-07
+       3    8.05548e-11
+Taking a time step to: 4.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.0229
+       2    1.81251e-07
+       3    7.9277e-11
+Taking a time step to: 4.5 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02161
+       2    1.81344e-07
+       3    9.39647e-11
+Taking a time step to: 5.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.02031
+       2    1.81248e-07
+       3    3.01326e-11
+Time data written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_transient_timedata_py.csv
+Results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_transient.out
+
+Node results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_transient_nd.csv
+
+Conductor results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_transient_cond.csv
+
+Restart has been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\conduction_transient.rst
+
+All done ...
+

@@ -1,0 +1,26 @@
+! File generated automatically by the TNSolver GUI
+! Date: April 06, 2025
+! Time: 00:06:52
+! Original file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\convection-radiation.inp
+! -----------------------------------------------------------------------------
+Begin Solution Parameters
+   title = title
+   type = steady
+   units = SI
+   T units = C
+   nonlinear convergence = 1e-9
+   maximum nonlinear iterations = 100
+   Stefan-Boltzmann = 5.6704e-08
+   gravity = 9.80665
+   graphviz output = no
+   plot functions = no
+End Solution Parameters
+! -----------------------------------------------------------------------------
+Begin Nodes 
+   1	air	0.0	! air node
+   2	air	0.0	! air node
+   3	air	0.0	! air node
+   4	air	3.0000000000000005e-06	! air node
+End Nodes 
+! -----------------------------------------------------------------------------
+Begin Conductors 

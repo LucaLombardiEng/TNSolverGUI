@@ -1,0 +1,743 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 10:07 PM, on April 11, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\advection.inp
+
+Initializing the thermal network model ...
+
+Starting solution of a transient thermal network model ...
+
+Taking a time step to: 1.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    87.2589
+       2    11.2624
+       3    1.89604
+       4    0.322377
+       5    0.0547257
+       6    0.00928861
+       7    0.00157652
+       8    0.000267577
+       9    4.54147e-05
+      10    7.70804e-06
+      11    1.30825e-06
+      12    2.22044e-07
+      13    3.76867e-08
+      14    6.39618e-09
+      15    1.08569e-09
+      16    1.8426e-10
+Taking a time step to: 2.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    3.11977e-11
+Taking a time step to: 3.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    5.30861e-12
+Taking a time step to: 4.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    9.01976e-13
+Taking a time step to: 5.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 6.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 7.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 8.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 9.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 10.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 11.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 12.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 13.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 14.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 15.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 16.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 17.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 18.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 19.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 20.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 21.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 22.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 23.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 24.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 25.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 26.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 27.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 28.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 29.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 30.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 31.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 32.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 33.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 34.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 35.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 36.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 37.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 38.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 39.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 40.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 41.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 42.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 43.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 44.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 45.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 46.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 47.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 48.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 49.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 50.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 51.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 52.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 53.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 54.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 55.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 56.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 57.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 58.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 59.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 60.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 61.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 62.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 63.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 64.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 65.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 66.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 67.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 68.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 69.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 70.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 71.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 72.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 73.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 74.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 75.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 76.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 77.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 78.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 79.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 80.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 81.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 82.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 83.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 84.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 85.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 86.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 87.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 88.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 89.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 90.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 91.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 92.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 93.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 94.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 95.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 96.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 97.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 98.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 99.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Taking a time step to: 100.0 s
+
+    Nonlinear Solve
+  Iteration     Residual
+  --------- ------------
+
+       1    6.90661e-15
+Time data written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\advection_timedata_py.csv
+Results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\advection.out
+
+Node results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\advection_nd.csv
+
+Conductor results have been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\advection_cond.csv
+
+Restart has been written to: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\advection.rst
+
+All done ...
+

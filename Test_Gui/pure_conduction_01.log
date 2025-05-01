@@ -1,0 +1,16 @@
+
+**********************************************************
+*                                                        *
+*      TNSolver - A Thermal Network Solver              *
+*                                                        *
+*               Version 0.1.0, march, 2025*
+*                                                        *
+**********************************************************
+
+Model run started at 09:57 PM, on March 09, 2025
+
+Reading the input file: C:\Users\Luca_Lombardi\Documents\My Python\TNSolvergui\Test_Gui\pure_conduction_01.inp
+
+Initializing the thermal network model ...
+
+Starting solution of a steady thermal network model ...
