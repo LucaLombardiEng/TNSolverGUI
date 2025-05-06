@@ -32,7 +32,7 @@ class GraphicWindow(Frame):
         self.xsb = Scrollbar(self._board, orient="horizontal", command=self.th_canvas.xview)
         self.ysb = Scrollbar(self._board, orient="vertical", command=self.th_canvas.yview)
         self.th_canvas.configure(yscrollcommand=self.ysb.set, xscrollcommand=self.xsb.set)
-        self.th_canvas.configure(scrollregion=(0, 0, 1300, 630))
+        self.th_canvas.configure(scrollregion=(0, 0, 10000, 10000))
         self.ysb.pack(side='right', expand=1, fill='y', pady=self.xsb.winfo_height())
         self.xsb.pack(side='bottom', expand=1, fill='x', padx=self.ysb.winfo_width())
         self.th_canvas.pack(expand=1, fill='both', anchor='nw')
@@ -71,12 +71,12 @@ class GraphicWindow(Frame):
             self.zoom_level += step
             print('Zoom level: ' + str(self.zoom_level))
             self.font_size *= zoom_factor
-            # self.th_canvas.scale("all", 0, 0, zoom_factor, zoom_factor)
-            self.th_canvas.scale("all",
+            self.th_canvas.scale("all", 0, 0, zoom_factor, zoom_factor)
+            """self.th_canvas.scale("all",
                                  event.x + self.th_canvas.canvasx(0),
                                  event.y + self.th_canvas.canvasy(0),
                                  zoom_factor,
-                                 zoom_factor)
+                                 zoom_factor)"""
             self.th_canvas.configure(scrollregion=self.th_canvas.bbox("all"))
             self.font.configure(size=int(self.font_size))  # update font size
             self.th_canvas.itemconfig("text", font=self.font)

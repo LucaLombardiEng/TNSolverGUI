@@ -9,7 +9,8 @@
     next steps:
      - drag the entire network, activate the CTRL+A?
      - renumber,
-     - zoom in/out, fit the graphic area
+     - zoom in/out: implement the autoscroll to give the feeling of a continuous zoom centered to the mouse pointer
+     - CTRL+f fit the graphic area
 
 """
 from tkinter import Tk, Frame, Menu, PanedWindow, VERTICAL, HORIZONTAL, BOTH, messagebox
@@ -359,6 +360,7 @@ class ThermalNetwork(Frame):
         # self.centralFrame.th_canvas.bind("<ButtonRelease-2>", self.pan_update)
         self.centralFrame.th_canvas.bind("<ButtonRelease-2>", self.centralFrame.offset_calc)
         # self.centralFrame.th_canvas.bind("<MouseWheel>", lambda e: self.centralFrame.zoom(e))
+        self.centralFrame.th_canvas.bind("<MouseWheel>", lambda e: self.zoom(e))
         self.centralFrame.th_canvas.bind("<ButtonRelease-3>", lambda event: self.right_menu_popup(event))
         """-----------------------------------------------------------------------------------------------------"""
         self.centralFrame.th_canvas.tag_bind("drag", "<B1-Motion>", lambda event: self.drag_component(event))
@@ -779,6 +781,17 @@ class ThermalNetwork(Frame):
             for key in self.elm_dict:
                 self.elm_dict[key].update_solution(time)
             self.plotFrame.add_vertical_line(time)
+
+    def zoom(self, event):
+        zoom_factor = self.centralFrame.zoom(event)
+        for nodeID in self.node_dict.keys():
+            self.node_dict[nodeID].ctrX *= zoom_factor
+            self.node_dict[nodeID].ctrY *= zoom_factor
+
+        for elm_ID in self.elm_dict.keys():
+            self.elm_dict[elm_ID].ctrX *= zoom_factor
+            self.elm_dict[elm_ID].ctrY *= zoom_factor
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 
