@@ -5,6 +5,8 @@
  The material list shall be connected with the material_library.py section where the material library is defined
 
 """
+import time
+import re
 
 working_folder_path = "C:/Users/Luca_Lombardi/Documents/My Python/Test_Gui"
 
@@ -43,7 +45,7 @@ elm_type = {'Conduction': ('Linear conduction', 'Cylindrical conduction', 'Spher
 material_list = ("user defined", "air", "water", "steel")
 fluid_list = ("air", "water")
 
-time_unit = ('ms', 's', 'm', 'h')
+time_unit = (('ms', 's', 'm', 'h'), ())
 
 angle_units = (('°', 'rad'),
                ('degree', 'rad'))
@@ -66,7 +68,7 @@ specific_heat_unit = (('J/kg·°C', 'J/kg·K', 'J/g·°C', 'kJ/kg·°C', 'kJ/g·
                       ('J/kg/degC', 'J/kg/K', 'J/g/degC', 'kJ/kg/degC', 'kJ/g/degC'))
 
 heat_flux_unit = (('W/m\N{SUPERSCRIPT TWO}', 'kW/m\N{SUPERSCRIPT TWO}', 'W/cm\N{SUPERSCRIPT TWO}',
-                   'W/mm\N{SUPERSCRIPT TWO}' ),
+                   'W/mm\N{SUPERSCRIPT TWO}'),
                   ('W/m**2', 'kW/m**2', 'W/cm**2', 'W/mm**2'))
 
 volumetric_power_unit = (('W/m\N{SUPERSCRIPT THREE}', 'kW/m\N{SUPERSCRIPT THREE}', 'W/cm\N{SUPERSCRIPT THREE}',
@@ -85,6 +87,20 @@ velocity_unit = (('m/s', 'km/h', 'cm/s', 'mm/s'),
 htc_unit = (('W/m\N{SUPERSCRIPT TWO}·°C', 'W/m\N{SUPERSCRIPT TWO}·K', 'W/cm\N{SUPERSCRIPT TWO}·K',
              'W/mm\N{SUPERSCRIPT TWO}·K', 'kW/m\N{SUPERSCRIPT TWO}·K'),
             ('W/m**2/degC', 'W/m**2/K', 'W/cm**2/K', 'W/mm**2/K', 'kW/m**2/K'))
+
+unit_dict = {'time': time_unit,
+             'length': length_units_SI,
+             'area': area_unit_SI,
+             'velocity': velocity_unit,
+             'volume': volume_unit_SI,
+             'temperature': temperature_unit,
+             'density': density_unit_SI,
+             'specific heat': specific_heat_unit,
+             'heat flux': heat_flux_unit,
+             'volumetric power': volumetric_power_unit,
+             'power': power_unit,
+             'thermal conductivity': thermal_conductivity_unit,
+             'heat transfer coefficient': htc_unit}
 
 
 def get_elm_color(elmType):
@@ -119,3 +135,63 @@ def get_node_color(node_type):
         # If an exact match is not confirmed, this last case will be used if provided
         case _:
             return color_list[6]
+
+
+def validate_string(P):
+    escaped_special_chars = '_+-'
+    if not P:  # Empty input is always valid
+        return True
+    # if the string contains only alphanumeric and the special characters defined
+    pattern = r"^[a-zA-Z0-9" + escaped_special_chars + r"]*$"
+    if re.fullmatch(pattern, P):
+        return True
+    else:
+        return False
+
+
+def validate_real_number(P):
+    if not P:  # Empty input is always valid
+        return True
+
+    try:
+        # Check for scientific notation format if "e" or "E" is present
+        if "e" in P or "E" in P:
+            parts = P.split("e") if "e" in P else P.split("E")
+            if len(parts) > 2:
+                return False
+            base, exponent = parts
+            if not float(base):
+                return False
+            if len(exponent) == 0 or (len(exponent) == 1 and exponent.startswith('-')):
+                return True
+            elif not int(exponent):
+                return False
+        elif len(P) == 1 and (P[0] == '-' or P[0] == '.' or P[0] == '+'):
+            return True
+        elif float(P) == 0:
+            return True
+
+        if not float(P):
+            return False
+
+        return True
+    except ValueError:
+        return False
+
+
+def validate_integer_number(P):
+    if not P:  # Empty input is always valid
+        return True
+    elif P.isdigit() and int(P) >= 0:
+        return True
+    else:
+        return False
+
+
+def is_float(value):
+    """Checks if a string can be converted to a float."""
+    try:
+        float(value)
+        return True
+    except ValueError:
+        return False

@@ -14,7 +14,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import numpy as np
-import gUtility
+
+from TNSolver_GUI.Thermal_Network_TAB import gUtility
 
 
 class FunctionPlotter(Frame):
@@ -28,12 +29,12 @@ class FunctionPlotter(Frame):
         self._board = LabelFrame(self, width=800, height=800, padx=5, pady=0)
         self._board.pack(expand=True, fill='both')
 
-        self.naming('Test')
+        self.naming('no data')
         self.default_function()
 
     def naming(self, title):
-        self.title = title
-        self._board.configure(text=self.title)
+        title = title
+        self._board.configure(text=title)
 
     def default_function(self):
         """

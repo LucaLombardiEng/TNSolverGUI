@@ -5,7 +5,7 @@ from tkinter import Tk
 from tkinter.font import Font
 
 # from thermal_network import GraphicWindow
-import gUtility
+from TNSolver_GUI.Thermal_Network_TAB import gUtility
 import math
 import numpy as np
 

@@ -10,11 +10,12 @@ any module developed her shall not be used inside the main program
         - add text entities
     Help/About
 """
-from graphic_frame import GraphicWindow
 from tkinter import Tk
-from gUtility import font, font_size, dxf_color
 import ezdxf
 import math
+
+from TNSolver_GUI.Thermal_Network_TAB.graphic_frame import GraphicWindow
+from TNSolver_GUI.Thermal_Network_TAB.gUtility import font, font_size, dxf_color
 
 
 class DXFViewer:

@@ -1,23 +1,25 @@
-from tkinter import Tk, LabelFrame, Frame, END, Button, Entry, BooleanVar, StringVar
-from tkinter.ttk import Treeview, OptionMenu
-from thermal_node import ThermalNode
-from thermal_element import ThermalElm
-from gUtility import material_list, fluid_list, node_type, elm_type, angle_units, htc_unit
-from gUtility import length_units_SI, area_unit_SI, volume_unit_SI, density_unit_SI, specific_heat_unit, velocity_unit
-from gUtility import temperature_unit, heat_flux_unit, volumetric_power_unit, power_unit, thermal_conductivity_unit
-from pint import UnitRegistry
-
 """
     Thermal Solver Network - Property editor
     This class manages the editing of teh properties of nodes and elements
 
     Luca Lombardi
     Rev 0: First Draft
-    
+
     To Do:
     ...
-    ...    
+    ...
 """
+from tkinter import Tk, LabelFrame, Frame, END, Button, Entry, BooleanVar, StringVar
+from tkinter.ttk import Treeview, OptionMenu
+from pint import UnitRegistry
+
+from TNSolver_GUI.Thermal_Network_TAB.thermal_node import ThermalNode
+from TNSolver_GUI.Thermal_Network_TAB.thermal_element import ThermalElm
+from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, fluid_list, node_type, elm_type, angle_units,
+                                                       htc_unit, length_units_SI, area_unit_SI, volume_unit_SI,
+                                                       density_unit_SI, specific_heat_unit, velocity_unit,
+                                                       temperature_unit, heat_flux_unit, volumetric_power_unit,
+                                                       power_unit, thermal_conductivity_unit)
 
 
 class PropertyEditor(Frame):

@@ -15,18 +15,19 @@
 """
 from tkinter import Tk, Frame, Menu, PanedWindow, VERTICAL, HORIZONTAL, BOTH, messagebox
 from tkinter.font import Font
-from graphic_frame import GraphicWindow
-from progress_window import Terminal
-from thermal_library import ThermalLibrary
-from thermal_element import ThermalElm, elm_attributes
-from thermal_node import ThermalNode, node_attributes
-from property_editor import PropertyEditor
-from solver_settings import SolverSetting
-from graphic_plots import FunctionPlotter
-from time_slider import ScaleFrame
-from TNSolver_code.utility_functions import verdate
-import gUtility
 import numpy as np
+
+from TNSolver_GUI.Thermal_Network_TAB.graphic_frame import GraphicWindow
+from TNSolver_GUI.Thermal_Network_TAB.progress_window import Terminal
+from TNSolver_GUI.Thermal_Network_TAB.thermal_library import ThermalLibrary
+from TNSolver_GUI.Thermal_Network_TAB.thermal_element import ThermalElm, elm_attributes
+from TNSolver_GUI.Thermal_Network_TAB.thermal_node import ThermalNode, node_attributes
+from TNSolver_GUI.Thermal_Network_TAB.property_editor import PropertyEditor
+from TNSolver_GUI.Thermal_Network_TAB.solver_settings import SolverSetting
+from TNSolver_GUI.Thermal_Network_TAB.graphic_plots import FunctionPlotter
+from TNSolver_GUI.Thermal_Network_TAB.time_slider import ScaleFrame
+from TNSolver_code.utility_functions import verdate
+from TNSolver_GUI.Thermal_Network_TAB import gUtility
 
 
 class ThermalNetwork(Frame):

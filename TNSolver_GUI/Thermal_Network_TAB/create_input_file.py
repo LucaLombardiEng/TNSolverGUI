@@ -17,13 +17,13 @@
     Rev 0: First Draft
 
 """
+from pint import UnitRegistry
 
 from datetime import date, datetime
-from gUtility import material_list
-from gUtility import angle_units, htc_unit, length_units_SI, area_unit_SI, volume_unit_SI
-from gUtility import density_unit_SI, specific_heat_unit, velocity_unit, temperature_unit
-from gUtility import volumetric_power_unit, power_unit, thermal_conductivity_unit
-from pint import UnitRegistry
+from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, angle_units, htc_unit, length_units_SI,
+                                                       area_unit_SI, volume_unit_SI, density_unit_SI,
+                                                       specific_heat_unit, velocity_unit, temperature_unit,
+                                                       volumetric_power_unit, power_unit, thermal_conductivity_unit)
 from TNSolver_code.utility_functions import setunits
 
 

@@ -1,7 +1,8 @@
 from tkinter import Tk, LabelFrame, Frame, Canvas, Scrollbar
 from tkinter.font import Font
+from TNSolver_GUI.Thermal_Network_TAB import gUtility
 import random
-import gUtility
+
 
 """
     Graphic Frame in the GUI for the TNSolver

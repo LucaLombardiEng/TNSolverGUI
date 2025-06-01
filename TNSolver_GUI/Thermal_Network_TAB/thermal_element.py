@@ -3,7 +3,7 @@
 #
 from tkinter import Tk, Label
 from tkinter.font import Font
-import gUtility
+from TNSolver_GUI.Thermal_Network_TAB import gUtility
 import numpy as np
 # uncomment during the class test
 # from thermal_node import ThermalNode

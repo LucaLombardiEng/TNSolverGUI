@@ -8,24 +8,34 @@
     next steps:
         - add the background to the saved database
         - rebuild the background from the database
-    Help/About
 
+        TABS
+        - create the user function tab
+        - create the user material tab
+        - create the user enclosure tab
+        - create the user correlation tab
+        - create the user init cond tab
+        - create the converge tab
+
+        Help/About
+        - add link to GIT hub
+        - add license
+        - add link to libraries used
+        - add link to original TNSolver GIT Hub
 """
 import pickle
-import gUtility
 import os
-# import TNSolver_code
-# from save_file import save_network
 from tkinter import Tk, Menu, Toplevel, Label, Button, Frame
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Notebook, Sizegrip
-
 from PIL import ImageTk, Image
 
-from thermal_network import ThermalNetwork
-from create_input_file import TNSolver_input_file_gen
-from dxf_viewer import DXFViewer
+from TNSolver_GUI.Thermal_Network_TAB import gUtility
+from TNSolver_GUI.Thermal_Network_TAB.thermal_network import ThermalNetwork
+from TNSolver_GUI.Thermal_Network_TAB.create_input_file import TNSolver_input_file_gen
+from TNSolver_GUI.Thermal_Network_TAB.dxf_viewer import DXFViewer
 from TNSolver_code.core_solver import tn_solver
+from TNSolver_GUI.Function_TAB.tabular_user_function_main import UserFunctionDefinition
 
 
 def win_about():
@@ -44,7 +54,7 @@ def win_about():
     title.config(font=("Helvetica", 18))
     title.grid(row=1, column=1, columnspan=2, sticky="ew")
 
-    img_TNS = Image.open("../Pictures/TNS_logo.png").resize((382, 300), Image.Resampling.BICUBIC)
+    img_TNS = Image.open("Pictures/TNS_logo.png").resize((382, 300), Image.Resampling.BICUBIC)
     img_TNS = ImageTk.PhotoImage(img_TNS)
     left_label = Label(win, image=img_TNS, bg="white")
     left_label.grid(row=2, column=1)
@@ -111,7 +121,7 @@ class MainApplication(Frame):
 
     def setup_notebook(self):
         self.thermal_network_tab = ThermalNetwork(self.tab_ctrl)
-        self.user_function_tab = Frame(self.tab_ctrl)
+        self.user_function_tab = UserFunctionDefinition(self.tab_ctrl)
         self.user_material_tab = Frame(self.tab_ctrl)
         self.user_enclosure_tab = Frame(self.tab_ctrl)
         self.user_correlation_tab = Frame(self.tab_ctrl)
