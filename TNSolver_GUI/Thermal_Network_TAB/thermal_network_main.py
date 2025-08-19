@@ -32,9 +32,10 @@ from TNSolver_GUI.Thermal_Network_TAB import gUtility
 
 class ThermalNetwork(Frame):
 
-    def __init__(self, parent):
+    def __init__(self, parent, functions_dict):
         Frame.__init__(self, parent)
         # initialize variables
+        self.functions_dict = functions_dict
         self.start_vector = []
         self.selected_elm = None
         self.selected_node = None
@@ -416,14 +417,14 @@ class ThermalNetwork(Frame):
                     """Unbind all the other events on the window"""
                     self.leftFrame.thermal_elm.unbind("<ButtonRelease-1>")
                     self.leftFrame.thermal_elm.unbind("<B1-Motion>")
-                    self.centralFrame.th_canvas.tag_unbind("drag", "<B1-Motion>")
+                    # self.centralFrame.th_canvas.tag_unbind("drag", "<B1-Motion>")
                     """Force the connection of the entrance and the exit of the element"""
                     self.selected_elm = elmID
                     self.start_vector = [self.elm_dict[self.selected_elm].ctrX,
                                          self.elm_dict[self.selected_elm].ctrY]
                     self.follow_line = True
                     self.centralFrame.th_canvas.tag_bind("drag", "<ButtonRelease-1>", lambda e: self.connect_node(e))
-
+                    self.centralFrame.th_canvas.bind("<Motion>", lambda e: self.on_move(e))
                 else:
                     elmID = elmID - 1
                     pass
@@ -792,6 +793,10 @@ class ThermalNetwork(Frame):
         for elm_ID in self.elm_dict.keys():
             self.elm_dict[elm_ID].ctrX *= zoom_factor
             self.elm_dict[elm_ID].ctrY *= zoom_factor
+
+    def update_functions(self):
+        self.bottomFrame.write_text('The dictionary of the time functions has been just updated!\n')
+        pass
 
 
 # ---------------------------------------------------------------------------------------------------------------------

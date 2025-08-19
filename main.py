@@ -31,7 +31,7 @@ from tkinter.ttk import Notebook, Sizegrip
 from PIL import ImageTk, Image
 
 from TNSolver_GUI.Thermal_Network_TAB import gUtility
-from TNSolver_GUI.Thermal_Network_TAB.thermal_network import ThermalNetwork
+from TNSolver_GUI.Thermal_Network_TAB.thermal_network_main import ThermalNetwork
 from TNSolver_GUI.Thermal_Network_TAB.create_input_file import TNSolver_input_file_gen
 from TNSolver_GUI.Thermal_Network_TAB.dxf_viewer import DXFViewer
 from TNSolver_code.core_solver import tn_solver
@@ -43,7 +43,7 @@ def win_about():
     mail = "luca.lombardi.ing@gmail.com"
 
     win = Toplevel(root, background="white", borderwidth=2)
-    win.iconbitmap('../Pictures/icon_TNS.ico')
+    win.iconbitmap('./Pictures/icon_TNS.ico')
     win.wm_title("About...")
 
     def win_exit():
@@ -74,6 +74,13 @@ class MainApplication(Frame):
 
     def __init__(self, parent, *args, **kwargs):
         Frame.__init__(self, parent, *args, **kwargs)
+        # Centralized Data Store. This dictionary will hold all function definitions
+        self.functions_dict = {'new': {'abscissa': None,
+                                       'ordinate': None,
+                                       'physical_property': None,
+                                       'property_unit': None,
+                                       'time_unit': None,
+                                       'option': None}}
         self.thermal_network_tab = None
         self.user_function_tab = None
         self.user_material_tab = None
@@ -89,6 +96,7 @@ class MainApplication(Frame):
         self.solver_input_file = None
         self.background_folder = None
         self.background_filename = None
+
 
     def setup_menubar(self, root):
         menubar = Menu(root)
@@ -120,8 +128,10 @@ class MainApplication(Frame):
         pass
 
     def setup_notebook(self):
-        self.thermal_network_tab = ThermalNetwork(self.tab_ctrl)
-        self.user_function_tab = UserFunctionDefinition(self.tab_ctrl)
+        self.thermal_network_tab = ThermalNetwork(self.tab_ctrl, self.functions_dict)
+        # Create the tabs, passing the data store and update method
+        self.user_function_tab = UserFunctionDefinition(self.tab_ctrl, self.functions_dict,
+                                                        self.update_function_callback)
         self.user_material_tab = Frame(self.tab_ctrl)
         self.user_enclosure_tab = Frame(self.tab_ctrl)
         self.user_correlation_tab = Frame(self.tab_ctrl)
@@ -137,6 +147,13 @@ class MainApplication(Frame):
         self.tab_ctrl.add(self.converge_tab, text="Convergence")
 
         self.tab_ctrl.pack(expand=1, fill="both")
+
+    def update_function_callback(self):
+        """
+        This is the central method that user_function_tab calls to trigger an update.
+        It then calls the specific update method on thermal_network_tab.
+        """
+        self.thermal_network_tab.update_functions()
 
     def new_network(self):
         check = messagebox.askyesno(title="Create a new Network", message="Do you want to create a new network?")

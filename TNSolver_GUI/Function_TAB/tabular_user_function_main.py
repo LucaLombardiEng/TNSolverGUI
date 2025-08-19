@@ -20,14 +20,17 @@ from .data_graphic_interface import FunctionPlotter
 
 
 class UserFunctionDefinition(Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, functions_dict, update_callback):
         Frame.__init__(self, parent)
         # initialize variables
+        self.functions_dict = functions_dict
+        self.update_callback = update_callback
         self.main_panned_window = PanedWindow(self, orient='horizontal')
         self.left_panned_window = PanedWindow(self.main_panned_window, orient='horizontal')
         self.right_panned_window = PanedWindow(self.main_panned_window, orient='horizontal')
 
-        self.data_frame = BasicSettings(self.left_panned_window, self.data_variation)
+        self.data_frame = BasicSettings(self.left_panned_window, self.data_variation, self.functions_dict,
+                                        self.update_callback)
         self.plot_frame = FunctionPlotter(self.right_panned_window)
 
         self.main_panned_window.pack(fill='both', expand=1)
@@ -39,11 +42,10 @@ class UserFunctionDefinition(Frame):
     def data_variation(self, var_name, index, mode):
         """something is changed in the data tree, the graph can be updated"""
         data_dict = self.data_frame.data_dict
-        title = data_dict['name']
-        data = np.array(list(data_dict['data'].items()))
-        self.plot_frame.x_label = self.data_frame.argument_units.get()
-        self.plot_frame.y_label = self.data_frame.result_units.get()
-        self.plot_frame.title = title
+        data = np.array(list(data_dict.items()))
+        self.plot_frame.x_label = self.data_frame.physic_property.get()
+        self.plot_frame.y_label = self.data_frame.property_unit.get()
+        self.plot_frame.title = self.data_frame.function_name_entry.get()
         self.plot_frame.plot_function(data)
 
 
