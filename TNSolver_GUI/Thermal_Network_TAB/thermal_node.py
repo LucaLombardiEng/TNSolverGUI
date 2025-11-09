@@ -33,9 +33,9 @@ class ThermalNode:
         self.node_power = [0, f'W']
         self.node_thermostatic_node = None
         self.node_temp_on = [20, f'°C']
-        self.node_temp_on = [20, f'°C']
         self.node_temp_off = [20, f'°C']
         self.node_solution = None
+        self.node_fn_time = 'const'
         """ graphical properties """
         self.can = canvas
         self.font = Font(root=self.can, font=gUtility.font)  # create font object
@@ -163,6 +163,7 @@ class ThermalNode:
                            "volumetric power": self.node_volumetric_power,
                            "power": self.node_power,
                            "solution": self.node_solution,
+                           "time function": self.node_fn_time,
                            "thermostatic node id": self.node_thermostatic_node,
                            "temperature on": self.node_temp_on,
                            "temperature off": self.node_temp_off,

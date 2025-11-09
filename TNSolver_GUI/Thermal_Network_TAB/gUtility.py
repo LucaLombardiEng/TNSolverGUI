@@ -45,7 +45,7 @@ elm_type = {'Conduction': ('Linear conduction', 'Cylindrical conduction', 'Spher
 material_list = ("user defined", "air", "water", "steel")
 fluid_list = ("air", "water")
 
-time_unit = (('ms', 's', 'm', 'h'), ())
+time_unit = (('ms', 's', 'm', 'h'), ('ms', 's', 'min', 'h'))
 
 angle_units = (('°', 'rad'),
                ('degree', 'rad'))

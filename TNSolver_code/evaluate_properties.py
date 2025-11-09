@@ -18,32 +18,35 @@ def fluidprop(mat, T):
         Pr: Prandtl number.  All returned as numpy arrays.
     """
 
-    if isinstance(T, np.ndarray):
-        n = len(T)
-    else:
-        n = 1
-    k = np.full(n, np.nan)
-    rho = np.full(n, np.nan)
-    cp = np.full(n, np.nan)
-    mu = np.full(n, np.nan)
-    Pr = np.full(n, np.nan)
+    # --- 1. Ensure T is a 1D NumPy array ---
+    if not isinstance(T, np.ndarray):
+        T = np.array([T])
 
     # Helper function to evaluate property based on type
-    def eval_prop(prop_data, prop_type, T):
+    def eval_prop(prop_data, prop_type, T_array):
         if prop_type == 1:  # Constant
-            return np.full(len(T), prop_data[1]) # or prop_data[1] if it's a scalar.
+            val = np.full(T_array.shape, prop_data[1])
+            return val
         elif prop_type == 2:  # Table - piecewise linear
-            T = np.maximum(prop_data[0, 0], T)
-            T = np.minimum(prop_data[-1, 0], T)
-            return interp1d(prop_data[:, 0], prop_data[:, 1], kind='linear')(T)
+            x_data = prop_data[:, 0]
+            y_data = prop_data[:, 1]
+            interpolator = interp1d(x_data, y_data, kind='linear', fill_value=np.nan, bounds_error=False)
+            val = interpolator(T_array)
+            return val
         elif prop_type == 3:  # Monotonic spline
-            T = np.maximum(prop_data[0, 0], T)
-            T = np.minimum(prop_data[-1, 0], T)
-            return pchip_interpolate(prop_data[:, 0], prop_data[:, 1], T)
+            T_clamped = np.maximum(prop_data[0, 0], T_array)
+            T_clamped = np.minimum(prop_data[-1, 0], T_clamped)
+            val = pchip_interpolate(prop_data[:, 0], prop_data[:, 1], T_clamped)
+            outside_range = (T_array < prop_data[0, 0]) | (T_array > prop_data[-1, 0])
+            val[outside_range] = np.nan
+            return val
         elif prop_type == 4:  # Polynomial
-            return np.polyval(prop_data, T)
+            val = np.polyval(prop_data, T_array)
+            return val
         else:
-            raise ValueError(f"Invalid property type: {prop_type}")
+            # Create a NaN array for unrecognized type
+            nan_array = np.full(T_array.shape, np.nan)
+            return nan_array
 
     k = eval_prop(mat.kdata, mat.ktype, T)
     rho = eval_prop(mat.rhodata, mat.rhotype, T)
@@ -86,7 +89,8 @@ def betaprop(mat, T):
     elif beta_type == 2:  # Table - piecewise linear
         T = np.maximum(beta_data[0, 0], T)
         T = np.minimum(beta_data[-1, 0], T)
-        beta = interp1d(beta_data[:, 0], beta_data[:, 1], kind='linear')(T)
+        interpolator = interp1d(beta_data[:, 0], beta_data[:, 1], kind='linear')
+        beta = interpolator(T)
     elif beta_type == 3:  # Monotonic spline (pchip)
         T = np.maximum(beta_data[0, 0], T)
         T = np.minimum(beta_data[-1, 0], T)
@@ -125,7 +129,8 @@ def kprop(mat, T):
     if mat.ktype == 1:  # Constant
         k[:] = mat.kdata[1]
     elif mat.ktype == 2:  # Table - piecewise linear
-        k = interp1d(mat.kdata[:, 0], mat.kdata[:, 1], T, kind='linear', fill_value=np.nan)(T)
+        interpolator = interp1d(mat.kdata[:, 0], mat.kdata[:, 1], kind='linear', fill_value=np.nan)
+        k = interpolator(T)
     elif mat.ktype == 3:  # Monotonic spline (pchip)
         pchip = PchipInterpolator(mat.kdata[:, 0], mat.kdata[:, 1])
         k = pchip(T)
@@ -164,7 +169,8 @@ def rhoCpprop(mat, T):
     if mat.rhotype == 1:  # Constant
         rho[:] = mat.rhodata[1]
     elif mat.rhotype == 2:  # Table - piecewise linear
-        rho = interp1d(mat.rhodata[:, 0], mat.rhodata[:, 1], T, kind='linear', fill_value=np.nan)(T)
+        interpolator = interp1d(mat.rhodata[:, 0], mat.rhodata[:, 1], kind='linear', fill_value=np.nan)
+        rho = interpolator(T)
     elif mat.rhotype == 3:  # Monotonic spline
         pchip_rho = PchipInterpolator(mat.rhodata[:, 0], mat.rhodata[:, 1])
         rho = pchip_rho(T)
@@ -173,12 +179,12 @@ def rhoCpprop(mat, T):
     else:
       raise ValueError("Invalid rhotype specified")
 
-
     # Specific heat
     if mat.cptype == 1:  # Constant
         cp[:] = mat.cpdata[1]
     elif mat.cptype == 2:  # Table - piecewise linear
-        cp = interp1d(mat.cpdata[:, 0], mat.cpdata[:, 1], T, kind='linear', fill_value=np.nan)(T)
+        interpolator = interp1d(mat.cpdata[:, 0], mat.cpdata[:, 1], kind='linear', fill_value=np.nan)
+        cp = interpolator(T)
     elif mat.cptype == 3:  # Monotonic spline
         pchip_cp = PchipInterpolator(mat.cpdata[:, 0], mat.cpdata[:, 1])
         cp = pchip_cp(T)
@@ -217,7 +223,8 @@ def rhoCvprop(mat, T):
     if mat.rhotype == 1:  # Constant
         rho[:] = mat.rhodata[0, 1]
     elif mat.rhotype == 2:  # Table - piecewise linear
-        rho = interp1d(mat.rhodata[:, 0], mat.rhodata[:, 1], T, kind='linear', fill_value=np.nan)(T)
+        interpolator = interp1d(mat.rhodata[:, 0], mat.rhodata[:, 1], kind='linear', fill_value=np.nan)
+        rho = interpolator(T)
     elif mat.rhotype == 3:  # Monotonic spline
         pchip_rho = PchipInterpolator(mat.rhodata[:, 0], mat.rhodata[:, 1])
         rho = pchip_rho(T)
@@ -230,7 +237,8 @@ def rhoCvprop(mat, T):
     if mat.cvtype == 1:  # Constant
         cv[:] = mat.cvdata[0, 1]
     elif mat.cvtype == 2:  # Table - piecewise linear
-        cv = interp1d(mat.cvdata[:, 0], mat.cvdata[:, 1], T, kind='linear', fill_value=np.nan)(T)
+        interpolator = interp1d(mat.cvdata[:, 0], mat.cvdata[:, 1], kind='linear', fill_value=np.nan)
+        cv = interpolator(T)
     elif mat.cvtype == 3:  # Monotonic spline
         pchip_cv = PchipInterpolator(mat.cvdata[:, 0], mat.cvdata[:, 1])
         cv = pchip_cv(T)
@@ -259,15 +267,22 @@ def evalfunc(func, ind_v):
     """
 
     val = np.nan  # Initialize with NaN
-
+    data = np.array(func.data)
     if func.type == 0:
-        val = func.data
+        # Type 0: Constant function (assuming 'data' holds the constant value)
+        val = data
     elif func.type == 1:  # Linear interpolation
-        val = interp1d(func.data[:, 0], func.data[:, 1], ind_v, kind='linear', fill_value=np.nan)(ind_v)
-    elif func.type == 2:  # Pchip interpolation
-        pchip = PchipInterpolator(func.data[:, 0], func.data[:, 1])
+        # 1. Create the interpolator function object
+        # bounds_error=False ensures fill_value is used outside the data range
+        interpolator = interp1d(data[:, 0], data[:, 1], kind='linear', fill_value=np.nan, bounds_error=False)
+        # 2. Call the interpolator function with the independent variable(s)
+        val = interpolator(ind_v)
+    elif func.type == 2:
+        # PchipInterpolator handles out-of-bounds values with a fill value (often extrapolation)
+        pchip = PchipInterpolator(data[:, 0], data[:, 1])
         val = pchip(ind_v)
     else:
+        # func.type not recognized, returns initial val (np.nan)
         pass
 
     return val

@@ -6,8 +6,9 @@
     Rev 0: First Draft
 
     To Do:
-    ...
-    ...
+        - Switch from an node or element type to another properly
+        - switch to a value to a function
+        - ...
 """
 from tkinter import Tk, LabelFrame, Frame, END, Button, Entry, BooleanVar, StringVar
 from tkinter.ttk import Treeview, OptionMenu
@@ -23,7 +24,7 @@ from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, fluid_list
 
 
 class PropertyEditor(Frame):
-    def __init__(self, parent, change_callback):
+    def __init__(self, parent, fn_dict, change_callback):
         Frame.__init__(self, parent)
 
         self.change_released = BooleanVar(value=False)
@@ -36,19 +37,24 @@ class PropertyEditor(Frame):
         """ TreeView of items """
         self.property_tree = Treeview(self._frame_prop_edit, height=20)
         self.property_tree['columns'] = ["value", "units"]
-        self.property_tree.column("#0", width=150)
-        self.property_tree.column("value", width=120)
+        self.property_tree.column("#0", width=120)
+        self.property_tree.column("value", width=100)
         self.property_tree.column("units", width=60)
         self.property_tree.heading("#0", text="Name")
         self.property_tree.heading("value", text="Value")
         self.property_tree.heading("units", text="Unit")
         # -------------------------------------------
-        # self.property_tree.grid(row=0, column=0, sticky="w")
         self.property_tree.pack(side='left', padx=5, pady=10, expand=1, fill='x', anchor='n')
 
         self.property_tree.bind("<Double-1>", self.on_double_click)
 
         self.change_released.trace_add("write", change_callback)
+        self.fn_dict = fn_dict
+        self._switch_2_func = None
+        self._change_node_type = None
+        self._fn_option = None
+        self._grouped_fn = {}
+        self.group_functions_by_unit()
 
     def on_double_click(self, event):
         # modify the data
@@ -57,6 +63,7 @@ class PropertyEditor(Frame):
             return
 
         material_selected = StringVar()
+        fn_selected = StringVar()
         unit_selected = StringVar()
         type_selected = StringVar()
 
@@ -75,17 +82,17 @@ class PropertyEditor(Frame):
             selected_box = self.property_tree.bbox(selected_iid, selected_column)
             if selected_column == 0:
                 if selected_iid == '1':
-                    self.change_node_type = OptionMenu(self._frame_prop_edit,
-                                                       type_selected,
-                                                       selected_text,
-                                                       *node_type,
-                                                       command=lambda m: self._set_node_type(m, selected_iid))
-                    self.change_node_type.place(x=selected_box[0],
-                                                y=selected_box[1] + 10,
-                                                w=selected_box[2],
-                                                h=selected_box[3])
-                    self.change_node_type.focus()
-                    self.change_node_type.bind("<FocusOut>", self.box_focus_out)
+                    self._change_node_type = OptionMenu(self._frame_prop_edit,
+                                                        type_selected,
+                                                        selected_text,
+                                                        *node_type,
+                                                        command=lambda m: self._set_node_type(m, selected_iid))
+                    self._change_node_type.place(x=selected_box[0],
+                                                 y=selected_box[1] + 10,
+                                                 w=selected_box[2],
+                                                 h=selected_box[3])
+                    self._change_node_type.focus()
+                    self._change_node_type.bind("<FocusOut>", self.box_focus_out)
                 elif selected_iid == '3':
                     # comment entry
                     entry_box = Entry(self._frame_prop_edit, width=selected_box[2])
@@ -126,6 +133,32 @@ class PropertyEditor(Frame):
                     entry_box.focus()
                     entry_box.bind("<FocusOut>", self.box_focus_out)
                     entry_box.bind("<Return>", lambda e: self.on_enter_press(e, selected_iid, selected_column))
+                elif selected_iid == '9':
+                    # Temperature entry
+                    if self.property_tree.item(1, 'values')[1] == 'const':
+                        entry_box = Entry(self._frame_prop_edit, width=selected_box[2], validate="key",
+                                          validatecommand=(self.register(self.validate_real_number), "%P"))
+                        entry_box.place(x=selected_box[0],
+                                        y=selected_box[1] + 10,
+                                        w=selected_box[2],
+                                        h=selected_box[3])
+                        entry_box.insert(0, selected_text)
+                        entry_box.select_range(0, END)
+                        entry_box.focus()
+                        entry_box.bind("<FocusOut>", self.box_focus_out)
+                        entry_box.bind("<Return>", lambda e: self.on_enter_press(e, selected_iid, selected_column))
+                    else:
+                        self._fn_option = OptionMenu(self._frame_prop_edit,
+                                                     fn_selected,
+                                                     selected_text,
+                                                     *self._grouped_fn['temperature'],
+                                                     command=lambda m: self._set_function(m, fn_selected.get()))
+                        self._fn_option.place(x=selected_box[0],
+                                              y=selected_box[1] + 10,
+                                              w=selected_box[2],
+                                              h=selected_box[3])
+                        self._fn_option.focus()
+                        self._fn_option.bind("<FocusOut>", self.box_focus_out)
                 elif selected_iid == '13':
                     # thermostatic node - the only one with an integer entry
                     entry_box = Entry(self._frame_prop_edit, width=selected_box[2], validate="key",
@@ -151,9 +184,25 @@ class PropertyEditor(Frame):
                     entry_box.focus()
                     entry_box.bind("<FocusOut>", self.box_focus_out)
                     entry_box.bind("<Return>", lambda e: self.on_enter_press(e, selected_iid, selected_column))
+            elif (selected_column == 1) and (selected_iid == '1'):
+                if selected_values.get("values")[0] == "Temperature" and bool(self.fn_dict):
+                    # check if the function dictionary contains any function involving a temperature:
+                    if 'temperature' in self._grouped_fn.keys():
+                        self._switch_2_func = OptionMenu(self._frame_prop_edit,
+                                                         type_selected,
+                                                         selected_text,
+                                                         *['const', 'fn(t)'],
+                                                         command=lambda m: self._toggle_temperature(m))
+                        self._switch_2_func.place(x=selected_box[0],
+                                                  y=selected_box[1] + 10,
+                                                  w=selected_box[2],
+                                                  h=selected_box[3])
+                        self._switch_2_func.focus()
+                        self._switch_2_func.bind("<FocusOut>", self.box_focus_out)
             elif (selected_column == 1) and (int(selected_iid) > 4):
                 # units column
                 if 'enabled' in self.property_tree.item(selected_iid)['tags']:
+                    proceed = True
                     if selected_iid == '5':
                         # Volume units
                         self.unit_option = OptionMenu(self._frame_prop_edit,
@@ -185,8 +234,18 @@ class PropertyEditor(Frame):
                                                       *area_unit_SI[0],
                                                       command=lambda m: self._set_unit(m, area_unit_SI,
                                                                                        selected_iid))
-                    elif selected_iid in ['9', '14', '15']:
-                        # Temperature units
+                    elif selected_iid == '9':
+                        # prevent the change of units from the function definition
+                        if self.property_tree.item(1, 'values')[1] == 'const':
+                            self.unit_option = OptionMenu(self._frame_prop_edit,
+                                                          unit_selected,
+                                                          selected_text,
+                                                          *temperature_unit[0],
+                                                          command=lambda m: self._set_unit(m, temperature_unit,
+                                                                                           selected_iid))
+                        else:
+                            proceed = False
+                    elif selected_iid in ['14', '15']:
                         self.unit_option = OptionMenu(self._frame_prop_edit,
                                                       unit_selected,
                                                       selected_text,
@@ -217,15 +276,15 @@ class PropertyEditor(Frame):
                                                       *power_unit[0],
                                                       command=lambda m: self._set_unit(m, power_unit,
                                                                                        selected_iid))
-
-                    # remember to add the pady or padx in case of modifications in the placement of the
-                    # _frame_prop_edit frame. place do not consider this from the pack method.
-                    self.unit_option.place(x=selected_box[0],
-                                           y=selected_box[1] + 10,
-                                           w=selected_box[2],
-                                           h=selected_box[3])
-                    self.unit_option.focus()
-                    self.unit_option.bind("<FocusOut>", self.box_focus_out)
+                    if proceed:
+                        # remember to add the pady or padx in case of modifications in the placement of the
+                        # _frame_prop_edit frame. place do not consider this from the pack method.
+                        self.unit_option.place(x=selected_box[0],
+                                               y=selected_box[1] + 10,
+                                               w=selected_box[2],
+                                               h=selected_box[3])
+                        self.unit_option.focus()
+                        self.unit_option.bind("<FocusOut>", self.box_focus_out)
                 else:
                     pass
             else:
@@ -333,7 +392,7 @@ class PropertyEditor(Frame):
                                                   *velocity_unit[0],
                                                   command=lambda m: self._set_unit(m, velocity_unit,
                                                                                    selected_iid))
-                elif selected_iid in ['9', '11', '12', '13',  '14', '15', '17', '18']:
+                elif selected_iid in ['9', '11', '12', '13', '14', '15', '17', '18']:
                     # characteristic length units
                     self.unit_option = OptionMenu(self._frame_prop_edit,
                                                   unit_selected,
@@ -343,8 +402,7 @@ class PropertyEditor(Frame):
                                                                                    selected_iid))
                 elif selected_iid == '10':
                     # angle units
-                    # print(unit_selected)
-                    self.unit_option = OptionMenu(self._frame_prop_edit,
+                     self.unit_option = OptionMenu(self._frame_prop_edit,
                                                   unit_selected,
                                                   selected_text,
                                                   *angle_units[0],
@@ -384,10 +442,21 @@ class PropertyEditor(Frame):
         else:
             pass
 
+    def _toggle_temperature(self, fn_type):
+        self.dummy_node.node_fn_time = fn_type
+        if fn_type == 'const':
+            self.dummy_node.node_temperature = [20, f'°C']
+        else:
+            self.dummy_node.node_temperature = [self._grouped_fn['temperature'][0],
+                                                self.fn_dict[self._grouped_fn['temperature'][0]]['property_unit']]
+        self._switch_2_func.destroy()
+        self.edit_node(self.dummy_node)
+        self.toggle_var()
+
     def _set_node_type(self, n_type, selected_iid):
         self.property_tree.set(selected_iid, "value", n_type)
         self.dummy_node.node_type = n_type
-        self.change_node_type.destroy()
+        self._change_node_type.destroy()
         self.edit_node(self.dummy_node)
         self.toggle_var()
 
@@ -432,13 +501,19 @@ class PropertyEditor(Frame):
         self.unit_option.destroy()
         self.update_properties()
 
+    def _set_function(self, event, fn_name):
+        # this is used to change the function in the dummy element and update the treeview.
+        self.property_tree.set(9, "value", fn_name)
+        self.property_tree.set(9, "units", self.fn_dict[fn_name]['property_unit'])
+        self._fn_option.destroy()
+        self.update_properties()
+
     def update_properties(self):
         item = self.property_tree.item(0).get("text")
         if item == "Node ID":
             self.update_node()
             self.toggle_var()
         elif item == "Element ID":
-            print(item + ': ' + str(self.property_tree.item(0).get('values')[0]))
             self.update_element()
             self.toggle_var()
         else:
@@ -727,6 +802,7 @@ class PropertyEditor(Frame):
             self.property_tree.insert(parent="", index=END, iid=7, text="specific heat",
                                       values=self.dummy_node.node_Cp, tags=('even row', tag_state))
         elif self.dummy_node.node_type == "Temperature":
+            self.property_tree.set(1, "units", self.dummy_node.node_fn_time)
             self.property_tree.insert(parent="", index=END, iid=9, text="temperature",
                                       values=self.dummy_node.node_temperature, tags=('odd row', 'enabled'))
         elif self.dummy_node.node_type == "Heat Flux":
@@ -998,14 +1074,41 @@ class PropertyEditor(Frame):
         else:
             pass
 
+    def group_functions_by_unit(self):
+        self._grouped_fn.clear()
+        if self.fn_dict:
+            for fn in self.fn_dict.keys():
+                if self.fn_dict[fn]['physic_property'] == 'temperature':
+                    if 'temperature' in self._grouped_fn.keys():
+                        self._grouped_fn['temperature'].append(fn)
+                    else:
+                        self._grouped_fn['temperature'] = [fn]
+                elif self.fn_dict[fn]['physic_property'] == 'power':
+                    if 'power' in self._grouped_fn.keys():
+                        self._grouped_fn['power'].append(fn)
+                    else:
+                        self._grouped_fn['power'] = [fn]
+                elif self.fn_dict[fn]['physic_property'] == 'heat flux':
+                    if 'heat flux' in self._grouped_fn.keys():
+                        self._grouped_fn['heat flux'].append(fn)
+                    else:
+                        self._grouped_fn['heat flux'] = [fn]
+                elif self.fn_dict[fn]['physic_property'] == 'volumetric power':
+                    if 'volumetric power' in self._grouped_fn.keys():
+                        self._grouped_fn['volumetric power'].append(fn)
+                    else:
+                        self._grouped_fn['volumetric power'] = [fn]
+                else:
+                    pass
+        else:
+            pass
+
     def get_info(self):
         item = self.property_tree.item(0)
         parent = item.get("text")
         if parent == "Node ID":
-            # print("node ID: ", self.dummy_node.node_ID)
             return self.dummy_node
         elif parent == "element ID":
-            # print("elm ID: ", self.dummy_elm.elmID)
             return self.dummy_elm
         else:
             pass

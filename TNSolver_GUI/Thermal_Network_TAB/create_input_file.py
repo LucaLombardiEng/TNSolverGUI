@@ -20,8 +20,8 @@
 from pint import UnitRegistry
 
 from datetime import date, datetime
-from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, angle_units, htc_unit, length_units_SI,
-                                                       area_unit_SI, volume_unit_SI, density_unit_SI,
+from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, time_unit, htc_unit, length_units_SI,
+                                                       area_unit_SI, volume_unit_SI, density_unit_SI, heat_flux_unit,
                                                        specific_heat_unit, velocity_unit, temperature_unit,
                                                        volumetric_power_unit, power_unit, thermal_conductivity_unit)
 from TNSolver_code.utility_functions import setunits
@@ -41,7 +41,7 @@ def unit_conversion(to_unit, from_unit, unit_table, from_value):
     return to_magnitude.magnitude
 
 
-def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
+def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, functions):
     f = open(filename, "w")
     separator = '! -----------------------------------------------------------------------------\n'
     # ---------- Header ----------
@@ -114,7 +114,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
         element = elements[key]
         if element["subtype"] == "Linear conduction":
             if element["material"] in material_list[1:]:
-                aux1 = str(element["material"]).replace(' ', '_') 
+                aux1 = str(element["material"]).replace(' ', '_')
                 aux2 = " ! material, L, A \n"
             else:
                 k = unit_conversion('W/m/K', element["thermal conductivity"][1], thermal_conductivity_unit,
@@ -137,7 +137,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     aux2)
         elif element["subtype"] == "Cylindrical conduction":
             if element["material"] in material_list[1:]:
-                aux1 = str(element["material"]).replace(' ', '_') 
+                aux1 = str(element["material"]).replace(' ', '_')
                 aux2 = " ! material, ri, ro, L \n"
             else:
                 k = unit_conversion('W/m/K', element["thermal conductivity"][1], thermal_conductivity_unit,
@@ -159,7 +159,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     aux2)
         elif element["subtype"] == "Spherical conduction":
             if element["material"] in material_list[1:]:
-                aux1 = str(element["material"]).replace(' ', '_') 
+                aux1 = str(element["material"]).replace(' ', '_')
                 aux2 = " ! material, ri, ro \n"
             else:
                 k = unit_conversion('W/m/K', element["thermal conductivity"][1], thermal_conductivity_unit,
@@ -331,8 +331,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(element["exit node id"]) + "\t" +
                     str(element["material"]).replace(' ', '_') + "\t" +
                     str(length) + "\t" +
-                    str(area) + "\t" 
-                    " ! material, L=A/P, A\n")
+                    str(area) + "\t"
+                                " ! material, L=A/P, A\n")
         elif element["subtype"] == "Inclined plate facing down":
             height = unit_conversion('m', element["height"][1], length_units_SI, element["height"][0])
             length = unit_conversion('m', element["characteristic length"][1], length_units_SI,
@@ -348,8 +348,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(height) + "\t" +
                     str(length) + "\t" +
                     str(angle) + "\t" +
-                    str(area) + "\t" 
-                    " ! material, H, L=A/P, angle, A\n")
+                    str(area) + "\t"
+                                " ! material, H, L=A/P, angle, A\n")
         elif element["subtype"] == "Inclined plate facing up":
             height = unit_conversion('m', element["height"][1], length_units_SI, element["height"][0])
             length = unit_conversion('m', element["characteristic length"][1], length_units_SI,
@@ -365,8 +365,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(height) + "\t" +
                     str(length) + "\t" +
                     str(angle) + "\t" +
-                    str(area) + "\t" 
-                    " ! material, H, L=A/P, angle, A\n")
+                    str(area) + "\t"
+                                " ! material, H, L=A/P, angle, A\n")
         elif element["subtype"] == "ENC Sphere":
             diameter = unit_conversion('m', element["characteristic length"][1], length_units_SI,
                                        element["characteristic length"][0])
@@ -389,8 +389,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(element["exit node id"]) + "\t" +
                     str(element["material"]).replace(' ', '_') + "\t" +
                     str(length) + "\t" +
-                    str(area) + "\t" 
-                    " ! material, L, A\n")
+                    str(area) + "\t"
+                                " ! material, L, A\n")
         elif element["subtype"] == "Surface Radiation":
             area = unit_conversion('m**2', element["area"][1], area_unit_SI, element["area"][0])
             f.write("   " +
@@ -399,8 +399,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(element["inlet node id"]) + "\t" +
                     str(element["exit node id"]) + "\t" +
                     str(element["emissivity"][0]) + "\t" +
-                    str(area) + "\t" 
-                    " ! emissivity, A\n")
+                    str(area) + "\t"
+                                " ! emissivity, A\n")
         elif element["subtype"] == "Radiation":
             area = unit_conversion('m**2', element["area"][1], area_unit_SI, element["area"][0])
             f.write("   " +
@@ -410,8 +410,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(element["exit node id"]) + "\t" +
                     str(element["exchange factor 12"]) + "\t" +
                     str(element["exchange factor 21"]) + "\t" +
-                    str(area) + "\t" 
-                    " !  script-F, A\n")
+                    str(area) + "\t"
+                                " !  script-F, A\n")
         elif element["subtype"] == "Advection":
             velocity = unit_conversion('m/s', element["velocity"][1], velocity_unit, element["velocity"][0])
             area = unit_conversion('m**2', element["area"][1], area_unit_SI, element["area"][0])
@@ -422,8 +422,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(element["exit node id"]) + "\t" +
                     str(element["material"]).replace(' ', '_') + "\t" +
                     str(velocity) + "\t" +
-                    str(area) + "\t" 
-                    " !  material, velocity, A\n")
+                    str(area) + "\t"
+                                " !  material, velocity, A\n")
         elif element["subtype"] == "Outflow":
             velocity = unit_conversion('m/s', element["velocity"][1], velocity_unit, element["velocity"][0])
             area = unit_conversion('m**2', element["area"][1], area_unit_SI, element["area"][0])
@@ -434,8 +434,8 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
                     str(element["exit node id"]) + "\t" +
                     str(element["material"]).replace(' ', '_') + "\t" +
                     str(velocity) + "\t" +
-                    str(area) + "\t" 
-                    " !  material, velocity, A\n")
+                    str(area) + "\t"
+                                " !  material, velocity, A\n")
 
     f.write("End Conductors \n")
 
@@ -446,16 +446,23 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
     for key in nodes.keys():
         node = nodes[key]
         if node["type"] == "Temperature":
-            temperature = unit_conversion('degC', node["temperature"][1], temperature_unit,
-                                          node["temperature"][0])
+            if node["time function"] == "const":
+                temperature = unit_conversion('degC', node["temperature"][1], temperature_unit,
+                                              node["temperature"][0])
+            else:
+                temperature = node["temperature"][0]
             f.write("   fixed_T\t" +
                     str(temperature) + "\t" +
                     str(node["ID"]) + "\t! " +
                     str(node["comment"]) + "\n")
         elif node["type"] == "Heat Flux":
             area = unit_conversion('m**2', node["area"][1], area_unit_SI, node["area"][0])
+            if node["time function"] == "const":
+                h_flux = unit_conversion('W/m**2', node["heat flux"][1], heat_flux_unit, node["heat flux"][0])
+            else:
+                h_flux = node["heat flux"][0]
             f.write("   heat_flux\t" +
-                    str(node["heat flux"][0]) + "\t" +
+                    str(h_flux) + "\t" +
                     str(area) + "\t" +
                     str(node["ID"]) + "\t! " +
                     str(node["comment"]) + "\n")
@@ -516,11 +523,61 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize):
     f.write("End Radiation Enclosure \n")
 
     # ----------  Functions Section  ----------
-
-    f.write(separator)
-    f.write("Begin Functions \n")
-
-    f.write("End Functions \n")
+    """ functions = {'new': {'abscissa': None,
+                             'ordinate': None,
+                             'physic_property': None,
+                             'property_unit': None,
+                             'time_unit': None,
+                             'option': None}} """
+    fn_list = list(functions.keys())
+    if 'new' in fn_list:
+        fn_list.remove('new')
+    if len(fn_list) > 1:  # check if there are functions stored
+        f.write(separator)
+        f.write("Begin Functions \n")
+        for fn in fn_list:
+            if functions[fn]['option'] == 'Constant':
+                f.write("  Begin Constant\t" + fn + "\n")
+                if functions[fn]['physic_property'] == "temperature":
+                    fx = unit_conversion('degC', functions[fn]['property_unit'], temperature_unit,
+                                         functions[fn]['ordinate'][0])
+                elif functions[fn]['physic_property'] == "heat flux":
+                    fx = unit_conversion('W/m**2', functions[fn]['property_unit'], heat_flux_unit,
+                                         functions[fn]['ordinate'][0])
+                elif functions[fn]['physic_property'] == "volumetric power":
+                    fx = unit_conversion('W/m**3', functions[fn]['property_unit'], volumetric_power_unit,
+                                         functions[fn]['ordinate'][0])
+                elif functions[fn]['physic_property'] == "power":
+                    fx = unit_conversion('W', functions[fn]['property_unit'], power_unit,
+                                         functions[fn]['ordinate'][0])
+                else:
+                    print("ERROR: function not defined yet - check: " + fn)
+                f.write("    " + str(fx) + " ! value\n")
+                f.write("  End Constant " + fn + "\n")
+            elif functions[fn]['option'][:4] == 'Time':
+                f.write("  Begin " + functions[fn]['option'] + "\t" + fn + "\n")
+                for idx in range(len(functions[fn]['abscissa'])):
+                    t = unit_conversion('s', functions[fn]['time_unit'], time_unit,
+                                        functions[fn]['abscissa'][idx])
+                    if functions[fn]['physic_property'] == "temperature":
+                        fx = unit_conversion('degC', functions[fn]['property_unit'], temperature_unit,
+                                             functions[fn]['ordinate'][idx])
+                    elif functions[fn]['physic_property'] == "heat flux":
+                        fx = unit_conversion('W/m**2', functions[fn]['property_unit'], heat_flux_unit,
+                                             functions[fn]['ordinate'][idx])
+                    elif functions[fn]['physic_property'] == "volumetric power":
+                        fx = unit_conversion('W/m**3', functions[fn]['property_unit'], volumetric_power_unit,
+                                             functions[fn]['ordinate'][idx])
+                    elif functions[fn]['physic_property'] == "power":
+                        fx = unit_conversion('W', functions[fn]['property_unit'], power_unit,
+                                             functions[fn]['ordinate'][idx])
+                    else:
+                        print("ERROR: function not defined yet - check: " + fn)
+                    f.write("    " + str(t) + "\t" + str(fx) + " ! time, value\n")
+                f.write("  End " + functions[fn]['option'] + "\t" + fn + "\n")
+        f.write("End Functions \n")
+    else:
+        pass
 
     # ----------  Material Section  ----------
 

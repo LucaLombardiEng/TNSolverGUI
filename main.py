@@ -77,7 +77,7 @@ class MainApplication(Frame):
         # Centralized Data Store. This dictionary will hold all function definitions
         self.functions_dict = {'new': {'abscissa': None,
                                        'ordinate': None,
-                                       'physical_property': None,
+                                       'physic_property': None,
                                        'property_unit': None,
                                        'time_unit': None,
                                        'option': None}}
@@ -96,7 +96,6 @@ class MainApplication(Frame):
         self.solver_input_file = None
         self.background_folder = None
         self.background_filename = None
-
 
     def setup_menubar(self, root):
         menubar = Menu(root)
@@ -159,6 +158,13 @@ class MainApplication(Frame):
         check = messagebox.askyesno(title="Create a new Network", message="Do you want to create a new network?")
         if check:
             self.thermal_network_tab.network_reset()
+            self.functions_dict.clear()
+            self.functions_dict['new'] = {'abscissa': None,
+                                          'ordinate': None,
+                                          'physic_property': None,
+                                          'property_unit': None,
+                                          'time_unit': None,
+                                          'option': None}
             self.thermal_network_tab.bottomFrame.clear_text()
             self.thermal_network_tab.welcome_message()
         else:
@@ -190,6 +196,7 @@ class MainApplication(Frame):
                     serialized_data = pickle.load(f)
                 f.close()
 
+                # retrieve the Solution definition
                 if 'Solution' in serialized_data:
                     self.thermal_network_tab.solution_Frame.setting_from_file(serialized_data["Solution"])
                     if serialized_data['Solution']['analysis_type'] == 'Transient':
@@ -204,12 +211,22 @@ class MainApplication(Frame):
                 else:
                     self.thermal_network_tab.slider_Frame.disable()
 
-                # draw the nodes
+                # retrieve the Functions definitions
+                if 'Functions' in serialized_data:
+                    self.functions_dict.clear()  # clear the dictionary
+                    self.functions_dict.update(serialized_data['Functions'])  # update the main function dictionary
+                    # self.thermal_network_tab.update_functions()
+                    self.thermal_network_tab.rightFrame.group_functions_by_unit()
+                    self.user_function_tab.refresh_display()  # trigger the update of the fn dictionary in the fn tab
+                else:
+                    pass
+
+                # retrieve the nodes and splash on the graphic area
                 serialized_nodes = serialized_data["Nodes"]
                 for key in serialized_nodes.keys():
                     self.thermal_network_tab.load_node(serialized_nodes[key])
 
-                # draw the elements
+                # retrieve the elements and splash on the graphic area
                 serialized_elements = serialized_data["Elements"]
                 for key in serialized_elements.keys():
                     self.thermal_network_tab.load_element(serialized_elements[key])
@@ -245,8 +262,8 @@ class MainApplication(Frame):
             background = DXFViewer(self.thermal_network_tab.centralFrame.th_canvas, filename)
             segment, dimension = background.get_dimension()
             graph, _ = self.thermal_network_tab.graph_area()
-            x = ((graph[1]-graph[0])-segment)/2
-            y = graph[3]-150
+            x = ((graph[1] - graph[0]) - segment) / 2
+            y = graph[3] - 150
             background.draw_meter_scale(x, y, segment, dimension, 'mm')
 
     def save_network(self):
@@ -276,17 +293,19 @@ class MainApplication(Frame):
         serialized_nodes = self.thermal_network_tab.get_nodes()
         serialized_elm = self.thermal_network_tab.get_element()
         serialized_solution = self.thermal_network_tab.solution_Frame.serialize()
+        serialized_functions = self.functions_dict
 
         # Serialize the object to a binary format
 
         data_to_save = {"Nodes": serialized_nodes,
                         "Elements": serialized_elm,
-                        "Solution": serialized_solution
+                        "Solution": serialized_solution,
+                        "Functions": serialized_functions
                         }
         filepath = os.path.join(self.working_folder, self.filename)
 
         self.thermal_network_tab.bottomFrame.write_text('working folder: ' + self.working_folder + '\nfile name: ' +
-                                                        self.filename +'\n')
+                                                        self.filename + '\n')
 
         with open(filepath, 'wb') as f:
             pickle.dump(data_to_save, f)
@@ -305,7 +324,6 @@ class MainApplication(Frame):
     def quit(self):
         check = messagebox.askyesnocancel(title="Quit the application",
                                           message="Do you want to save the work before closing?")
-        print(check)
         if check is None:
             pass
         elif check is True:
@@ -327,7 +345,8 @@ class MainApplication(Frame):
                                         self.thermal_network_tab.solution_Frame.get_analysis_setup(),
                                         serialized_nodes,
                                         serialized_elm,
-                                        self.thermal_network_tab.solution_Frame.initialize_all)
+                                        self.thermal_network_tab.solution_Frame.initialize_all,
+                                        self.functions_dict)
             else:
                 self.thermal_network_tab.bottomFrame.write_text(
                     'ERROR: The Working folder is not defined.\n')

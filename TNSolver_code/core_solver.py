@@ -243,7 +243,8 @@ def tnsdriver(fid, T, Q, spar, nd, el, bc, src, func, mat, logfID, prog_report, 
             if bc[bcn].fncTinf is not None:
                 bc[bcn].Tinf = evalfunc(func[bc[bcn].fncTinf], time)
                 for j in range(len(bc[bcn].nd)):
-                    eqn = nd[bc[bcn].nd[j] - 1].eqn  # Corrected indexing
+                    index = int(bc[bcn].nd[j])
+                    eqn = nd[index - 1].eqn  # Corrected indexing
                     nd[eqn].T = bc[bcn].Tinf + spar.Toff
                     T[eqn] = nd[eqn].T
 
@@ -637,7 +638,7 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
 
         if nd[n].strvol:
             ndx = matchfunc(func, nd[n].strvol)
-            if ndx != 0:
+            if ndx != -1:
                 nd[n].vfncID = ndx
             else:
                 message = '\nERROR: Cannot find matching function for node {} volume.\n'.format(nd[n].strvol)
@@ -663,7 +664,7 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
             spar.Dirichlet.append(i)
             if len(bc[i].strTinf) != 0:
                 ndx = matchfunc(func, bc[i].strTinf)
-                if ndx > 0:
+                if ndx != -1:
                     bc[i].fncTinf = ndx
                 else:
                     message = '\nERROR: Cannot find matching function {} for BC temperature.\n'.format(bc[i].strTinf)
@@ -674,7 +675,7 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
             spar.Neumann.append(i)
             if len(bc[i].strq) != 0:
                 ndx = matchfunc(func, bc[i].strq)
-                if ndx > 0:
+                if ndx != -1:
                     bc[i].fncq = ndx
                 else:
                     message = '\nERROR: Cannot find matching function {} for BC q.\n'.format(bc[i].strq)
@@ -683,7 +684,7 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
 
             if bc[i].strA:
                 ndx = matchfunc(func, bc[i].strA)
-                if ndx > 0:
+                if ndx != -1:
                     bc[i].fncA = ndx
                 else:
                     message = '\nERROR: Cannot find matching function {} for BC area.\n'.format(bc[i].strA)

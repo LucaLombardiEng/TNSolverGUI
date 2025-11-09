@@ -1484,7 +1484,6 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
         func: List of functions (function is a class).
 
     """
-
     while line_number < len(lines):
         line_number += 1
         str_, line_number = nextline(lines, line_number)
@@ -1493,9 +1492,16 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
             break
 
         tokens = re.findall(r'\S+', str_)  # Find all tokens
-        func_block = ' '.join(tokens[0:])
+        if len(tokens) == 3:
+            func_block = ' '.join(tokens[0:2])
+        else:
+            func_block = ' '.join(tokens[0:3])
 
-        if func_block.lower == 'begin constant':
+        if func_block.lower() == 'begin constant':
+            func.append(Function())
+            func[-1].name = '_'.join(tokens[2:])
+            func[-1].indvar = 0
+            func[-1].type = 0
             while line_number < len(lines):
                 line_number += 1
                 str_, line_number = nextline(lines, line_number)
@@ -1505,7 +1511,6 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                 else:
                     tokens = re.findall(r'\S+', str_)
                     if is_float(tokens[0]):
-                        func.append(Function)
                         func[-1].data = float(tokens[0])  # Convert to float
                     else:
                         message = ('\nERROR: Invalid function data at line {} in the input file:\n{}.'.
@@ -1513,7 +1518,12 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                         user_feedback(message, prog_report, logfID, *text_widget)
                         inp_err = 1
 
-        elif func_block.lower == 'begin time table':
+        elif func_block.lower() == 'begin time table':
+            func.append(Function())
+            func[-1].name = '_'.join(tokens[3:])
+            func[-1].indvar = 1
+            func[-1].type = 1
+            func[-1].data = []  # declaration of an empty array
             while line_number < len(lines):
                 line_number += 1
                 str_, line_number = nextline(lines, line_number)
@@ -1523,15 +1533,19 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                 else:
                     tokens = re.findall(r'\S+', str_)
                     if is_float(tokens[0]) and float(tokens[1]):
-                        func.append(Function)
-                        func[-1].data = [float(tokens[0]), float(tokens[1])]  # Convert to float
+                        func[-1].data.append([float(tokens[0]), float(tokens[1])])  # Convert to float
                     else:
                         message = ('\nERROR: Invalid function data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
                         user_feedback(message, prog_report, logfID, *text_widget)
                         inp_err = 1
 
-        elif func_block.lower == 'begin time spline':
+        elif func_block.lower() == 'begin time spline':
+            func.append(Function())
+            func[-1].name = '_'.join(tokens[3:])
+            func[-1].indvar = 1
+            func[-1].type = 2
+            func[-1].data = []
             while line_number < len(lines):
                 line_number += 1
                 str_, line_number = nextline(lines, line_number)
@@ -1541,15 +1555,20 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                 else:
                     tokens = re.findall(r'\S+', str_)
                     if is_float(tokens[0]) and float(tokens[1]):
-                        func.append(Function)
-                        func[-1].data = [float(tokens[0]), float(tokens[1])]  # Convert to float
+                        func[-1].data.append = [float(tokens[0]), float(tokens[1])]  # Convert to float
                     else:
                         message = ('\nERROR: Invalid function data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
                         user_feedback(message, prog_report, logfID, *text_widget)
                         inp_err = 1
 
-        elif func_block.lower == 'begin time polynomial':
+        elif func_block.lower() == 'begin time polynomial':
+            func.append(Function())
+            func[-1].name = '_'.join(tokens[3:])
+            func[-1].indvar = 1
+            func[-1].type = 3
+            func[-1].range = []
+            func[-1].data = []
             while line_number < len(lines):
                 line_number += 1
                 str_, line_number = nextline(lines, line_number)
@@ -1558,17 +1577,15 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                     break
                 else:
                     tokens = re.findall(r'\S+', str_)
-                    if tokens[0].lower == "range":
+                    if tokens[0].lower() == "range":
                         if is_float(tokens[0]) and float(tokens[1]):
-                            func.append(Function)
                             func[-1].range = [float(tokens[0]), float(tokens[1])]  # Convert to float
                         else:
                             message = ('\nERROR: Invalid function data at line {} in the input file:\n{}.'.
                                        format(line_number + 1, str_))
                             user_feedback(message, prog_report, logfID, *text_widget)
                             inp_err = 1
-                    elif tokens[0].lower == "data":
-                        func.append(Function)
+                    elif tokens[0].lower() == "data":
                         for index in range(len(tokens[1:])):
                             if is_float(tokens[index]):
                                 func[-1].data.append = float(tokens[index])  # Convert to float
@@ -1578,7 +1595,12 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                                 user_feedback(message, prog_report, logfID, *text_widget)
                                 inp_err = 1
 
-        elif func_block.lower == 'begin composite':
+        elif func_block.lower() == 'begin composite':
+            func.append(Function())
+            func[-1].name = '_'.join(tokens[2:])
+            func[-1].indvar = 1
+            func[-1].type = 4
+            func[-1].data = []
             while line_number < len(lines):
                 line_number += 1
                 str_, line_number = nextline(lines, line_number)
@@ -1587,21 +1609,14 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
                     break
                 else:
                     tokens = re.findall(r'\S+', str_)
-                    func.append(Function)
                     for index in range(len(tokens[1:])):
-                        if is_float(tokens[index]):
-                            func[-1].data.append = float(tokens[index])  # Convert to float
-                        else:
-                            message = ('\nERROR: Invalid function data at line {} in the input file:\n{}.'.
-                                       format(line_number + 1, str_))
-                            user_feedback(message, prog_report, logfID, *text_widget)
-                            inp_err = 1
-
+                        func[-1].data.append = tokens[index]  # Convert to float
         else:
             message = ('\nERROR: Unknown functions block command at line {} in the input file:\n{}.'.
                        format(line_number + 1, str_))
             user_feedback(message, prog_report, logfID, *text_widget)
             inp_err = 1
+
     return line_number, func, inp_err
 
 

@@ -25,6 +25,7 @@ class BasicSettings(Frame):
         Frame.__init__(self, parent)
         self.functions_dict = functions_dict
         self.update_callback = update_callback
+        self._functions_list = []
         self.change_released = BooleanVar(value=False)
         self.excel_data = None
         self.import_window = None
@@ -34,11 +35,12 @@ class BasicSettings(Frame):
         self.change_released.trace_add("write", variation_callback)
         # definition of the dictionary of the data, containing metadata and data array
         self.data_dict = {}
+        self._opt_int_list = ['Constant', 'Time Table', 'Time Spline']
         """
         This dictionary is moved into the main program and passed to the function TAB
         self.functions_dict = {'new': {'abscissa': None,
                                        'ordinate': None,
-                                       'physical_property': None,
+                                       'physic_property': None,
                                        'property_unit': None,
                                        'time_unit': None,
                                        'option': None}}
@@ -81,7 +83,7 @@ class BasicSettings(Frame):
         self.function_name_entry.bind("<Return>", lambda e: self._function_name_enter(e))
 
         self.option_interpolator = Combobox(self._right_frame_top, width=27, textvariable=StringVar(), state="readonly",
-                                            values=['Constant', 'piecewise linear', 'Monotonic Spline'])
+                                            values=self._opt_int_list)
         self.option_interpolator.current(0)
         self.option_interpolator.pack(side='top', pady=10)
 
@@ -168,6 +170,42 @@ class BasicSettings(Frame):
 
         self.data_tree.bind("<ButtonRelease-3>", lambda event: self.right_menu_popup(event))
 
+    def refresh_function_list(self):
+        self._functions_list = list(self.functions_dict.keys())
+        self.functions_list_combo['values'] = self._functions_list
+        self.functions_list_combo.current(1)
+        self.clear_all_data()
+        self.data_dict.clear()
+
+        self.function_name_entry.delete(0, 'end')
+        name = self.functions_list_combo.get()
+        self.function_name_entry.insert(-1, name)
+
+        opt = self.functions_dict[name]['option']
+        idx = self._opt_int_list.index(opt)
+        self.option_interpolator.current(idx)
+
+        ph_prop = self.functions_dict[name]['physic_property']
+        self._physic_property_list = list(unit_dict.keys())
+        idx = self._physic_property_list.index(ph_prop)
+        self.physic_property['values'] = self._physic_property_list
+        self.physic_property.current(idx)
+
+        prop_unit = self.functions_dict[name]['property_unit']
+        self._unit_list = list(unit_dict[ph_prop][0])
+        idx = self._unit_list.index(prop_unit)
+        self.property_unit['values'] = self._unit_list
+        self.property_unit.current(idx)
+
+        time_unit = self.functions_dict[name]['time_unit']
+        idx = self._time_unit_list.index(time_unit)
+        self.time_unit.current(idx)
+
+        for i in range(len(self.functions_dict[name]['abscissa'])):
+            self.data_dict[self.functions_dict[name]['abscissa'][i]] = self.functions_dict[name]['ordinate'][i]
+        self.update_tree()
+        self.toggle_var()
+
     def _function_changed(self, _e):
         # this function manage the change in the function list combobox
         name = self.function_name_entry.get()
@@ -184,13 +222,13 @@ class BasicSettings(Frame):
                 if ((self.functions_dict[name]['abscissa'] == data_list[:, 0]).all() and
                         (self.functions_dict[name]['ordinate'] == data_list[:, 1]).all() and
                         self.functions_dict[name]['physic_property'] == self.physic_property.get() and
-                        self.functions_dict[name]['physic_unit'] == self.property_unit.get() and
+                        self.functions_dict[name]['property_unit'] == self.property_unit.get() and
                         self.functions_dict[name]['time_unit'] == self.time_unit.get() and
                         self.functions_dict[name]['option'] == self.option_interpolator.get()):
                     overwrite = False
             if overwrite:
                 # the current function has been modified and not saved, ask if it needs to be saved first
-                _message = "The function has been modified, do you want to overwrite the data?"
+                _message = "The function has been modified (2), do you want to overwrite the data?"
                 check = messagebox.askyesno(title="Function changed", message=_message)
                 if not check:
                     overwrite = False
@@ -214,10 +252,31 @@ class BasicSettings(Frame):
         else:
             # a stored function has been called
             self.clear_all_data()
-            self.data_dict = {}
+            self.data_dict.clear()
             self.function_name_entry.delete(0, 'end')
             name = self.functions_list_combo.get()
             self.function_name_entry.insert(-1, name)
+
+            opt = self.functions_dict[name]['option']
+            idx = self._opt_int_list.index(opt)
+            self.option_interpolator.current(idx)
+
+            ph_prop = self.functions_dict[name]['physic_property']
+            self._physic_property_list = list(unit_dict.keys())
+            idx = self._physic_property_list.index(ph_prop)
+            self.physic_property['values'] = self._physic_property_list
+            self.physic_property.current(idx)
+
+            prop_unit = self.functions_dict[name]['property_unit']
+            self._unit_list = list(unit_dict[ph_prop][0])
+            idx = self._unit_list.index(prop_unit)
+            self.property_unit['values'] = self._unit_list
+            self.property_unit.current(idx)
+
+            time_unit = self.functions_dict[name]['time_unit']
+            idx = self._time_unit_list.index(time_unit)
+            self.time_unit.current(idx)
+
             for i in range(len(self.functions_dict[name]['abscissa'])):
                 self.data_dict[self.functions_dict[name]['abscissa'][i]] = self.functions_dict[name]['ordinate'][i]
             self.update_tree()
@@ -247,7 +306,7 @@ class BasicSettings(Frame):
                 if ((self.functions_dict[name]['abscissa'] == data_list[:, 0]).all() and
                         (self.functions_dict[name]['ordinate'] == data_list[:, 1]).all() and
                         self.functions_dict[name]['physic_property'] == self.physic_property.get() and
-                        self.functions_dict[name]['physic_unit'] == self.property_unit.get() and
+                        self.functions_dict[name]['property_unit'] == self.property_unit.get() and
                         self.functions_dict[name]['time_unit'] == self.time_unit.get() and
                         self.functions_dict[name]['option'] == self.option_interpolator.get()):
                     overwrite = False
@@ -273,12 +332,11 @@ class BasicSettings(Frame):
         self.functions_dict[name]['abscissa'] = data_list[:, 0]
         self.functions_dict[name]['ordinate'] = data_list[:, 1]
         self.functions_dict[name]['physic_property'] = self.physic_property.get()
-        self.functions_dict[name]['physic_unit'] = self.property_unit.get()
+        self.functions_dict[name]['property_unit'] = self.property_unit.get()
         self.functions_dict[name]['time_unit'] = self.time_unit.get()
         self.functions_dict[name]['option'] = self.option_interpolator.get()
 
-        self._functions_list = list(self.functions_dict.keys())
-        self.functions_list_combo['values'] = self._functions_list
+        self.refresh_function_list()
         idx = self._functions_list.index(name)
         self.functions_list_combo.current(idx)
 

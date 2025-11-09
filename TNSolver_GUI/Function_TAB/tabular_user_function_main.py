@@ -48,6 +48,9 @@ class UserFunctionDefinition(Frame):
         self.plot_frame.title = self.data_frame.function_name_entry.get()
         self.plot_frame.plot_function(data)
 
+    def refresh_display(self):
+        self.data_frame.refresh_function_list()
+
 
 if __name__ == "__main__":
     win = Tk()

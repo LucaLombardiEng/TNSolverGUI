@@ -330,7 +330,7 @@ class ThermalNetwork(Frame):
         self.centralFrame = GraphicWindow(self.central_Panned_Window)
         self.centralFrame.naming("Thermal Network Graphic Tree")
         self.bottomFrame = Terminal(self.central_Panned_Window)
-        self.rightFrame = PropertyEditor(self.right_Panned_Window, self.update_item)
+        self.rightFrame = PropertyEditor(self.right_Panned_Window, self.functions_dict, self.update_item)
         self.plotFrame = FunctionPlotter(self.right_Panned_Window)
         self.slider_Frame = ScaleFrame(self.right_Panned_Window)
         self.slider_Frame.disable()
@@ -453,6 +453,11 @@ class ThermalNetwork(Frame):
             self.node_dict[node["ID"]].node_solution = node["solution"]
         else:
             self.node_dict[node["ID"]].node_solution = None
+        if 'time function' in node:
+            self.node_dict[node["ID"]].node_fn_time = node['time function']
+        else:
+            self.node_dict[node["ID"]].node_solution = 'const'
+
         self.node_dict[node["ID"]].elm_list_in = node["inlet element list"]
         self.node_dict[node["ID"]].elm_list_out = node["exit element list"]
 
