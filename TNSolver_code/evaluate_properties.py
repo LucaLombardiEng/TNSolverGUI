@@ -281,6 +281,8 @@ def evalfunc(func, ind_v):
         # PchipInterpolator handles out-of-bounds values with a fill value (often extrapolation)
         pchip = PchipInterpolator(data[:, 0], data[:, 1])
         val = pchip(ind_v)
+    elif func.type == 3:  # Polynomial
+        val = np.polyval(data, ind_v)
     else:
         # func.type not recognized, returns initial val (np.nan)
         pass

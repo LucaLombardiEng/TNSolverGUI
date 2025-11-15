@@ -240,7 +240,7 @@ class ThermalNetwork(Frame):
 
     def paste(self):
         # the coordinates of the copied items is updated
-        # the copied entities are merged in teh main dictionary
+        # the copied entities are merged in the main dictionary
         # the bind events are restored
         self.centralFrame.th_canvas.unbind("<ButtonRelease-1>")
         self.centralFrame.th_canvas.bind("<Motion>")
@@ -258,6 +258,7 @@ class ThermalNetwork(Frame):
             self.elm_dict[e].elm_unselected_color()
         self.node_dict_copy.clear()
         self.elm_dict_copy.clear()
+        self.centralFrame.th_canvas.unbind("<Motion>")
         self.bind_events()
 
     def Delete(self):

@@ -218,6 +218,7 @@ class MainApplication(Frame):
                     # self.thermal_network_tab.update_functions()
                     self.thermal_network_tab.rightFrame.group_functions_by_unit()
                     self.user_function_tab.refresh_display()  # trigger the update of the fn dictionary in the fn tab
+                    print(self.functions_dict)
                 else:
                     pass
 

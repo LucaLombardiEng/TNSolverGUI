@@ -35,7 +35,7 @@ class BasicSettings(Frame):
         self.change_released.trace_add("write", variation_callback)
         # definition of the dictionary of the data, containing metadata and data array
         self.data_dict = {}
-        self._opt_int_list = ['Constant', 'Time Table', 'Time Spline']
+        self._opt_int_list = ['Constant', 'Time Table', 'Time Spline', 'Time Polynomial']
         """
         This dictionary is moved into the main program and passed to the function TAB
         self.functions_dict = {'new': {'abscissa': None,
@@ -46,63 +46,63 @@ class BasicSettings(Frame):
                                        'option': None}}
         """
         self._top_frame = Frame(self._basic_setting_frame)
-        self._left_frame_top = Frame(self._top_frame)
-        self._right_frame_top = Frame(self._top_frame)
+        self._top_frame_left = Frame(self._top_frame)
+        self._top_frame_right = Frame(self._top_frame)
         self._central_frame = Frame(self._basic_setting_frame)
         self._bottom_frame = Frame(self._basic_setting_frame)
-        self._left_frame_bottom = Frame(self._bottom_frame)
-        self._right_frame_bottom = Frame(self._bottom_frame)
+        self._bottom_frame_left = Frame(self._bottom_frame)
+        self._bottom_frame_right = Frame(self._bottom_frame)
 
-        # --- left frame_ top ---
-        self.function_list_label = Label(self._left_frame_top, text='Functions list', font=(font, font_size))
+        # --- left frame top ---
+        self.function_list_label = Label(self._top_frame_left, text='Functions list', font=(font, font_size))
         self.function_list_label.pack(side='top', pady=10, anchor='w')
-        self.function_name_label = Label(self._left_frame_top, text='Function name', font=(font, font_size))
+        self.function_name_label = Label(self._top_frame_left, text='Function name', font=(font, font_size))
         self.function_name_label.pack(side='top', pady=10, anchor='w')
-        self.option_label = Label(self._left_frame_top, text='Option', font=(font, font_size))
+        self.option_label = Label(self._top_frame_left, text='Option', font=(font, font_size))
         self.option_label.pack(side='top', pady=10, anchor='w')
-        self.physic_property_label = Label(self._left_frame_top, text='Physic Property', font=(font, font_size))
+        self.physic_property_label = Label(self._top_frame_left, text='Physic Property', font=(font, font_size))
         self.physic_property_label.pack(side='top', pady=10, anchor='w')
-        self.property_unit_label = Label(self._left_frame_top, text='Property Unit', font=(font, font_size))
+        self.property_unit_label = Label(self._top_frame_left, text='Property Unit', font=(font, font_size))
         self.property_unit_label.pack(side='top', pady=10, anchor='w')
-        self.time_unit_label = Label(self._left_frame_top, text='Time Unit', font=(font, font_size))
+        self.time_unit_label = Label(self._top_frame_left, text='Time Unit', font=(font, font_size))
         self.time_unit_label.pack(side='top', pady=10, anchor='w')
 
         # --- right frame_ top ---
         self._functions_list = list(self.functions_dict.keys())
-        self.functions_list_combo = Combobox(self._right_frame_top, width=27, textvariable=StringVar(),
+        self.functions_list_combo = Combobox(self._top_frame_right, width=27, textvariable=StringVar(),
                                              state="readonly", values=self._functions_list)
         self.functions_list_combo.current(0)
         self.functions_list_combo.pack(side='top', pady=10)
         self.functions_list_combo.bind('<<ComboboxSelected>>', self._function_changed)
 
-        self.function_name_entry = Entry(self._right_frame_top, font=(font, font_size), width=25, validate="key",
+        self.function_name_entry = Entry(self._top_frame_right, font=(font, font_size), width=25, validate="key",
                                          validatecommand=(self.register(validate_string), "%P"))
         self.function_name_entry.insert(-1, 'function_1')
         self.function_name_entry.pack(side='top', pady=10, anchor='w')
         self.function_name_entry.bind("<FocusOut>", lambda e: self._function_name_enter(e))
         self.function_name_entry.bind("<Return>", lambda e: self._function_name_enter(e))
 
-        self.option_interpolator = Combobox(self._right_frame_top, width=27, textvariable=StringVar(), state="readonly",
+        self.option_interpolator = Combobox(self._top_frame_right, width=27, textvariable=StringVar(), state="readonly",
                                             values=self._opt_int_list)
-        self.option_interpolator.current(0)
+        self.option_interpolator.current(1)
         self.option_interpolator.pack(side='top', pady=10)
 
         self._physic_property_list = list(unit_dict.keys())
         self._physic_property_list.remove('time')
-        self.physic_property = Combobox(self._right_frame_top, width=27, textvariable=StringVar(), state="readonly",
+        self.physic_property = Combobox(self._top_frame_right, width=27, textvariable=StringVar(), state="readonly",
                                         values=self._physic_property_list)
         self.physic_property.current(0)
         self.physic_property.pack(side='top', pady=10)
         self.physic_property.bind('<<ComboboxSelected>>', self._physic_property_changed)
 
         self._unit_list = list(unit_dict[self.physic_property.get()][0])
-        self.property_unit = Combobox(self._right_frame_top, width=27, textvariable=StringVar(), state="readonly",
+        self.property_unit = Combobox(self._top_frame_right, width=27, textvariable=StringVar(), state="readonly",
                                       values=self._unit_list)
         self.property_unit.current(1)
         self.property_unit.pack(side='top', pady=10)
 
         self._time_unit_list = list(unit_dict['time'][0])
-        self.time_unit = Combobox(self._right_frame_top, width=27, textvariable=StringVar(), state="readonly",
+        self.time_unit = Combobox(self._top_frame_right, width=27, textvariable=StringVar(), state="readonly",
                                   values=self._time_unit_list)
         self.time_unit.current(1)
         self.time_unit.pack(side='top', pady=10)
@@ -126,33 +126,33 @@ class BasicSettings(Frame):
         # -------------------------------------------
         self.data_tree.pack(side='left')
         # --- _left_frame_bottom ---
-        self.coordinate_label = Label(self._left_frame_bottom, text='Coordinate', font=(font, font_size))
+        self.coordinate_label = Label(self._bottom_frame_left, text='Coordinate', font=(font, font_size))
         self.coordinate_label.pack(side='top', pady=10, anchor='w')
-        self.value_label = Label(self._left_frame_bottom, text='Value', font=(font, font_size))
+        self.value_label = Label(self._bottom_frame_left, text='Value', font=(font, font_size))
         self.value_label.pack(side='top', pady=10, anchor='w')
-        self.add_button = Button(self._left_frame_bottom, text='Add', width=14, command=self.add_data)
+        self.add_button = Button(self._bottom_frame_left, text='Add', width=14, command=self.add_data)
         self.add_button.pack(side='top', pady=10, anchor='w')
-        self.store_button = Button(self._left_frame_bottom, text='Store function', width=14, state='disabled',
+        self.store_button = Button(self._bottom_frame_left, text='Store function', width=14, state='disabled',
                                    command=self.store_function)
         self.store_button.pack(side='top', pady=20, anchor='w')
 
         # --- _right_frame_bottom ---
-        self.coordinate_data = Entry(self._right_frame_bottom, font=(font, font_size), width=18, validate="key",
+        self.coordinate_data = Entry(self._bottom_frame_right, font=(font, font_size), width=18, validate="key",
                                      validatecommand=(self.register(validate_real_number), "%P"))
         self.coordinate_data.pack(side='top', pady=10, anchor='w')
-        self.value_data = Entry(self._right_frame_bottom, font=(font, font_size), width=18, validate="key",
+        self.value_data = Entry(self._bottom_frame_right, font=(font, font_size), width=18, validate="key",
                                 validatecommand=(self.register(validate_real_number), "%P"))
         self.value_data.pack(side='top', pady=10, anchor='w')
-        self.remove_button = Button(self._right_frame_bottom, text='Remove', width=14, command=self.remove_data)
+        self.remove_button = Button(self._bottom_frame_right, text='Remove', width=14, command=self.remove_data)
         self.remove_button.pack(side='top', pady=10, padx=10, anchor='w')
-        self.delete_button = Button(self._right_frame_bottom, text='Delete', width=14, state='disabled',
+        self.delete_button = Button(self._bottom_frame_right, text='Delete', width=14, state='disabled',
                                     command=self.delete_function)
         self.delete_button.pack(side='top', pady=20, padx=10, anchor='w')
 
-        self._left_frame_top.pack(side='left')
-        self._right_frame_top.pack(side='left')
-        self._left_frame_bottom.pack(side='left')
-        self._right_frame_bottom.pack(side='left', padx=40)
+        self._top_frame_left.pack(side='left')
+        self._top_frame_right.pack(side='left')
+        self._bottom_frame_left.pack(side='left')
+        self._bottom_frame_right.pack(side='left', padx=40)
 
         self._top_frame.pack(side='top', fill='x', pady=5, expand=True)
         self._central_frame.pack(side='top', fill='x', pady=5, expand=True)  # Ensure 'side=top'
