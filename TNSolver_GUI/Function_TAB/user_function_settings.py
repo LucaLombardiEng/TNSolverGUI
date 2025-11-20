@@ -6,7 +6,8 @@
     24 May 2025: First Draft
 
     next steps:
-     - import csv file: a similar import ExcelImporterApp class shall be generated
+     - import csv file: a similar import ExcelImporterApp class shall be generated.
+     - the polynomial definition of a time function is pending.
 
 """
 import numpy as np

@@ -10,7 +10,6 @@
         - rebuild the background from the database
 
         TABS
-        - create the user function tab
         - create the user material tab
         - create the user enclosure tab
         - create the user correlation tab
@@ -18,10 +17,8 @@
         - create the converge tab
 
         Help/About
-        - add link to GIT hub
         - add license
         - add link to libraries used
-        - add link to original TNSolver GIT Hub
 """
 import pickle
 import os
@@ -41,6 +38,8 @@ from TNSolver_GUI.Function_TAB.tabular_user_function_main import UserFunctionDef
 def win_about():
     revision = "1.0.0"
     mail = "luca.lombardi.ing@gmail.com"
+    githubURL = "https://github.com/LucaLombardiEng/TNSolverGUI"
+    TNSolver_url = "https://github.com/TNSolver/TNSolver"
 
     win = Toplevel(root, background="white", borderwidth=2)
     win.iconbitmap('./Pictures/icon_TNS.ico')
@@ -59,9 +58,12 @@ def win_about():
     left_label = Label(win, image=img_TNS, bg="white")
     left_label.grid(row=2, column=1)
 
-    info_text = Label(win, text="TNSolver GUI {}\nCreated by Luca Lombardi\n"
-                                "For info contact the author at\n{}".format(revision, mail),
-                      wraplength=300, justify='left', bg="white", font=("Helvetica", 12))
+    info_text = Label(win, text="TNSolver GUI {}\nCreated by Luca Lombardi\n\n"
+                                "For info contact the author: {}\n\n"
+                                "Source code available here: {}\n\n"
+                                "The Original Matlab TNSolver code is available here: {}\n\n"
+                                "Luca Lombardi 2025".format(revision, mail, githubURL, TNSolver_url),
+                      wraplength=900, justify='left', bg="white", font=("Helvetica", 12))
     info_text.grid(row=2, column=2, sticky="nsew")
 
     quit_button = Button(win, text="Quit", command=win_exit)
