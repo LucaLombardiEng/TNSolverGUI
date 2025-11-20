@@ -149,6 +149,18 @@ def validate_string(P):
         return False
 
 
+def validate_string_small(P):
+    escaped_special_chars = '_+-'
+    if not P:  # Empty input is always valid
+        return True
+    # if the string contains only alphanumeric and the special characters defined
+    pattern = r"^[a-z0-9" + escaped_special_chars + r"]*$"
+    if re.fullmatch(pattern, P):
+        return True
+    else:
+        return False
+
+
 def validate_real_number(P):
     if not P:  # Empty input is always valid
         return True

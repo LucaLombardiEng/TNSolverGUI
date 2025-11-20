@@ -43,10 +43,10 @@ class UserFunctionDefinition(Frame):
         """something is changed in the data tree, the graph can be updated"""
         data_dict = self.data_frame.data_dict
         data = np.array(list(data_dict.items()))
-        self.plot_frame.x_label = self.data_frame.physic_property.get()
-        self.plot_frame.y_label = self.data_frame.property_unit.get()
-        self.plot_frame.title = self.data_frame.function_name_entry.get()
-        self.plot_frame.plot_function(data)
+        x_label = 'Time - [' + self.data_frame.time_unit.get() + ']'
+        y_label = self.data_frame.physic_property.get() + ' - [' + self.data_frame.property_unit.get() + ']'
+        title = self.data_frame.function_name_entry.get()
+        self.plot_frame.plot_function(data, title, x_label, y_label)
 
     def refresh_display(self):
         self.data_frame.refresh_function_list()

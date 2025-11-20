@@ -24,10 +24,6 @@ class FunctionPlotter(Frame):
         # Pack the toolbar below the canvas
         self.toolbar.pack(side='bottom', fill='both', expand=0)
 
-        self.x_label = '---'
-        self.y_label = '---'
-        self.title = '---'
-
     def default_function(self):
         """
         Plot a line x[0, 1], y[0, 0]
@@ -44,9 +40,11 @@ class FunctionPlotter(Frame):
 
         Args:
             func (np.array): The function to plot, containing the x and y values.
-            *item[0]: 'node' or 'elm'
-            *item[1]: node or elm number
-            *item[2]: time for a vertical line
+            *item[0]: TITLE
+            *item[1]: x-axis title
+            *item[2]: y-axis title
+            *item[3]: x-axis range
+            *item[4]: y-axis range
         """
         # Clear the old plot before drawing new data
         self.plot.clear()
@@ -60,13 +58,31 @@ class FunctionPlotter(Frame):
         x = func[sorted_idx, 0]
         y = func[sorted_idx, 1]
 
-        # Plot the data first
-        self.plot.plot(x, y)
+        # creation of a mask to filter out the infinite
+        finite_mask = np.isfinite(x) & np.isfinite(y)
+
+        # Filter the data
+        x_finite = x[finite_mask]
+        y_finite = y[finite_mask]
+
+        title = item[0] if len(item) > 0 else "Function Plot"
+        x_label = item[1] if len(item) > 1 else "X-Axis"
+        y_label = item[2] if len(item) > 2 else "Y-Axis"
+
+        # Plot the data
+        if len(x_finite) > 1 and len(y_finite) > 1:
+            self.plot.plot(x, y, color='r', linestyle='--')
+        elif len(x_finite) == 1:
+            self.plot.axhline(y_finite, color='r', linestyle='--')
+        elif len(y_finite) == 1:
+            self.plot.axvline(x_finite, color='r', linestyle='--')
+        else:
+            pass
 
         # Then set labels, title, and grid
-        self.plot.set_xlabel(self.x_label)
-        self.plot.set_ylabel(self.y_label)
-        self.plot.set_title(self.title)
+        self.plot.set_xlabel(x_label)
+        self.plot.set_ylabel(y_label)
+        self.plot.set_title(title)
         self.plot.grid(True)
 
         # Call tight_layout *after* all plotting and setting elements

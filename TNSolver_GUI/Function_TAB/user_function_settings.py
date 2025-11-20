@@ -17,7 +17,7 @@ from tkinter import filedialog
 from tkinter.ttk import Combobox, Treeview, Scrollbar
 from .import_excel_data import ExcelImporterApp
 from TNSolver_GUI.Thermal_Network_TAB.gUtility import (unit_dict, font, font_size, validate_real_number, is_float,
-                                                       validate_string)
+                                                       validate_string_small)
 
 
 class BasicSettings(Frame):
@@ -33,9 +33,9 @@ class BasicSettings(Frame):
         self._basic_setting_frame = LabelFrame(self, text="Basic Settings", padx=10, pady=10)
         self._basic_setting_frame.pack(side='left', padx=10, pady=10, expand=True, fill='x', anchor='n')
         self.change_released.trace_add("write", variation_callback)
+        self._opt_int_list = ['Constant', 'Time Table', 'Time Spline', 'Time Polynomial']
         # definition of the dictionary of the data, containing metadata and data array
         self.data_dict = {}
-        self._opt_int_list = ['Constant', 'Time Table', 'Time Spline', 'Time Polynomial']
         """
         This dictionary is moved into the main program and passed to the function TAB
         self.functions_dict = {'new': {'abscissa': None,
@@ -76,7 +76,7 @@ class BasicSettings(Frame):
         self.functions_list_combo.bind('<<ComboboxSelected>>', self._function_changed)
 
         self.function_name_entry = Entry(self._top_frame_right, font=(font, font_size), width=25, validate="key",
-                                         validatecommand=(self.register(validate_string), "%P"))
+                                         validatecommand=(self.register(validate_string_small), "%P"))
         self.function_name_entry.insert(-1, 'function_1')
         self.function_name_entry.pack(side='top', pady=10, anchor='w')
         self.function_name_entry.bind("<FocusOut>", lambda e: self._function_name_enter(e))
@@ -86,6 +86,7 @@ class BasicSettings(Frame):
                                             values=self._opt_int_list)
         self.option_interpolator.current(1)
         self.option_interpolator.pack(side='top', pady=10)
+        self.option_interpolator.bind('<<ComboboxSelected>>', self._option_changed)
 
         self._physic_property_list = list(unit_dict.keys())
         self._physic_property_list.remove('time')
@@ -132,7 +133,7 @@ class BasicSettings(Frame):
         self.value_label.pack(side='top', pady=10, anchor='w')
         self.add_button = Button(self._bottom_frame_left, text='Add', width=14, command=self.add_data)
         self.add_button.pack(side='top', pady=10, anchor='w')
-        self.store_button = Button(self._bottom_frame_left, text='Store function', width=14, state='disabled',
+        self.store_button = Button(self._bottom_frame_left, text='Store Function', width=14, state='disabled',
                                    command=self.store_function)
         self.store_button.pack(side='top', pady=20, anchor='w')
 
@@ -145,7 +146,7 @@ class BasicSettings(Frame):
         self.value_data.pack(side='top', pady=10, anchor='w')
         self.remove_button = Button(self._bottom_frame_right, text='Remove', width=14, command=self.remove_data)
         self.remove_button.pack(side='top', pady=10, padx=10, anchor='w')
-        self.delete_button = Button(self._bottom_frame_right, text='Delete', width=14, state='disabled',
+        self.delete_button = Button(self._bottom_frame_right, text='Delete Function', width=14, state='disabled',
                                     command=self.delete_function)
         self.delete_button.pack(side='top', pady=20, padx=10, anchor='w')
 
@@ -214,7 +215,9 @@ class BasicSettings(Frame):
         overwrite = True
         # Check if the data present at screen need to be saved...
         # ... 1st check if the name function exists...
-        if name in self.functions_dict.keys():
+        if len(data_list) == 0:
+            overwrite = False
+        elif name in self.functions_dict.keys():
             # ... check if the current data are matching the stored function...
             # ... check for size first...
             if len(self.functions_dict[name]['abscissa']) == len(data_list[:, 0]):
@@ -282,6 +285,39 @@ class BasicSettings(Frame):
             self.update_tree()
             self.toggle_var()
 
+    def _option_changed(self, e_):
+        # this function manages the change in the function description, adapting the bottom frame structure
+        option = self.option_interpolator.get()
+        if option == 'Constant':
+            # in Coordinate write 0
+            # disable coordinate label and entering
+            # disable remove and delete buttons
+            # clear the data array
+
+            self.remove_button['state'] = 'disabled'
+            self.coordinate_data['state'] = 'disabled'
+            self.coordinate_label['state'] = 'disabled'
+            self.store_button['state'] = 'disabled'
+            self.data_dict.clear()
+            self.update_tree()
+            pass
+        if option in ['Time Table', 'Time Spline']:
+            self.remove_button['state'] = 'normal'
+            self.coordinate_data['state'] = 'normal'
+            self.coordinate_label['state'] = 'normal'
+            self.store_button['state'] = 'disabled'
+            self.add_button['text'] = 'Add'
+            self.data_dict.clear()
+            self.update_tree()
+        if option == 'Time Polynomial':
+            self.store_button['state'] = 'disabled'
+            self.data_dict.clear()
+            self.update_tree()
+        if option == 'Time Composite':
+            self.store_button['state'] = 'disabled'
+            self.data_dict.clear()
+            self.update_tree()
+
     def _physic_property_changed(self, _e):
         # this function is triggered by the change in the physic property changed
         self._unit_list = list(unit_dict[self.physic_property.get()][0])
@@ -336,7 +372,8 @@ class BasicSettings(Frame):
         self.functions_dict[name]['time_unit'] = self.time_unit.get()
         self.functions_dict[name]['option'] = self.option_interpolator.get()
 
-        self.refresh_function_list()
+        self._functions_list = list(self.functions_dict.keys())
+        self.functions_list_combo['values'] = self._functions_list
         idx = self._functions_list.index(name)
         self.functions_list_combo.current(idx)
 
@@ -346,7 +383,14 @@ class BasicSettings(Frame):
         self.update_callback()
 
     def delete_function(self):
-        pass
+        fn_key = self.functions_list_combo.get()
+        self.functions_dict.pop(fn_key)
+        self.clear_all_data()
+        self.function_name_entry.delete(0, 'end')
+        self._functions_list = list(self.functions_dict.keys())
+        self.functions_list_combo['values'] = self._functions_list
+        self.functions_list_combo.current(1)
+        self.toggle_var()
 
     def _function_name_enter(self, e):
         pass
@@ -357,6 +401,12 @@ class BasicSettings(Frame):
         self.right_menu.tk_popup(event.x_root, event.y_root)
 
     def add_data(self):
+        if self.option_interpolator.get() == 'Constant' and is_float(self.value_data.get()):
+            coordinate = 0.0
+            value = float(self.value_data.get())
+            self.data_dict[coordinate] = value
+            self.update_tree()
+            self.value_data.delete(0, 'end')
         if is_float(self.coordinate_data.get()) and is_float(self.value_data.get()):
             coordinate = float(self.coordinate_data.get())
             value = float(self.value_data.get())
@@ -383,6 +433,9 @@ class BasicSettings(Frame):
         if count == 1:  # means the dictionary is empty
             self.store_button.config(state='disabled')
             self.delete_button.config(state='disabled')
+        elif count > 2 and self.option_interpolator.get() == 'Constant':
+            self.add_button['text'] = 'Change'
+            self.store_button.config(state='normal')
         else:
             self.store_button.config(state='normal')
             self.delete_button.config(state='normal')
@@ -402,9 +455,12 @@ class BasicSettings(Frame):
         # Grab record values
         values = self.data_tree.item(selected, 'values')
 
-        # output to entry boxes
-        self.coordinate_data.insert(0, values[0])
-        self.value_data.insert(0, values[1])
+        if len(values) != 0:
+            # output to entry boxes if the variables are not empty
+            self.coordinate_data.insert(0, values[0])
+            self.value_data.insert(0, values[1])
+        else:
+            pass
 
     def remove_data(self):
         if is_float(self.coordinate_data.get()) and is_float(self.value_data.get()):
@@ -428,7 +484,7 @@ class BasicSettings(Frame):
         self.coordinate_data.delete(0, 'end')
         self.value_data.delete(0, 'end')
         self.store_button.config(state='disabled')
-        self.delete_button.config(state='disabled')
+        # self.delete_button.config(state='disabled')
         self.toggle_var()
 
     def toggle_var(self):
@@ -497,9 +553,22 @@ class BasicSettings(Frame):
 
     def close_import_window(self):
         self.data_dict = {}
-        self.data_dict = self.excel_data.data_dictionary
+        if self.option_interpolator.get() != 'Constant':
+            self.data_dict = self.excel_data.data_dictionary
+        else:
+            key_list = sorted(self.excel_data.data_dictionary.keys())
+            self.data_dict[key_list[0]] = self.excel_data.data_dictionary[key_list[0]]
         self.update_tree()
         self.import_window.destroy()
+
+    def reset_all(self):
+        self.clear_all_data()
+        self._functions_list = list(self.functions_dict.keys())
+        self.functions_list_combo['values'] = self._functions_list
+        self.functions_list_combo.current(0)
+        self.function_name_entry.delete(0, 'end')
+        self.data_dict = {}
+        self.toggle_var()
 
 
 if __name__ == '__main__':
