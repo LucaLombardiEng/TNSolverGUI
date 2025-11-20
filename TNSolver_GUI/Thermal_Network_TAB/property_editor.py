@@ -57,7 +57,10 @@ class PropertyEditor(Frame):
         self.group_functions_by_unit()
 
     def on_double_click(self, event):
-        # modify the data
+        # This function manage the property treeview to modify the data of a node or element
+        # update the function list
+        self.group_functions_by_unit()
+
         region_clicked = self.property_tree.identify_region(event.x, event.y)
         if region_clicked not in ("tree", "cell"):
             return
