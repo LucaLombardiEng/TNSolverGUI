@@ -7,10 +7,12 @@
     Rev 0: First Draft
 
     next steps:
-     - drag the entire network, activate the CTRL+A?
-     - renumber,
-     - zoom in/out: implement the autoscroll to give the feeling of a continuous zoom centered to the mouse pointer
+     - Drag the entire network, activate the CTRL+A?
+     - Renumbering,
+     - Zoom in/out: implement the autoscroll to give the feeling of a continuous zoom centered to the mouse pointer
      - CTRL+f fit the graphic area
+     - Activate the ESC press to stop the element or node import
+     - Stop the thermal element importing if there are less than 2 nodes in the network
 
 """
 from tkinter import Tk, Frame, Menu, PanedWindow, VERTICAL, HORIZONTAL, BOTH, messagebox
@@ -73,13 +75,13 @@ class ThermalNetwork(Frame):
         self.welcome_message()
 
         self.RightMenu = Menu(self.centralFrame.th_canvas, tearoff=False)
-        self.RightMenu.add_command(label="Select", command=self.Select)
+        # self.RightMenu.add_command(label="Select", command=self.Select)
         self.RightMenu.add_command(label="Copy", command=self.Copy)
         self.RightMenu.add_command(label="Paste", command=self.paste)
         self.RightMenu.add_separator()
         self.RightMenu.add_command(label="Delete", command=self.Delete)
         self.RightMenu.add_separator()
-        self.RightMenu.add_command(label="Renumber", command=self.Renumber)
+        # self.RightMenu.add_command(label="Renumber", command=self.Renumber)
 
     def welcome_message(self):
         self.bottomFrame.write_text('TNSolver GUI\n'+verdate()+'\n')
@@ -87,10 +89,10 @@ class ThermalNetwork(Frame):
     def right_menu_popup(self, event):
         self.RightMenu.tk_popup(event.x_root, event.y_root)
 
-    def Select(self):
-        pass
+    # def Select(self):
+    #     pass
 
-    def deselectAll(self):
+    def deselectAll(self, event=None):
         self.centralFrame.th_canvas.unbind("<Motion>")
         for n in self.item_selection["node"]:
             self.node_dict[n].node_unselected_color()
@@ -351,7 +353,8 @@ class ThermalNetwork(Frame):
         self.right_Panned_Window.add(self.slider_Frame, padx=10, sticky='sw', stretch='last', width=400)
 
     def bind_events(self):
-        self.centralFrame.bind("<Escape>", self.deselectAll)
+        top_level = self.winfo_toplevel()
+        top_level.bind("<Escape>", self.deselectAll)
         self.leftFrame.thermal_elm.bind("<ButtonRelease-1>", lambda event: self.create_component(event))
         self.leftFrame.thermal_elm.bind("<B1-Motion>", lambda event: self.drag_new_component(event))
         """-----------------------------------------------------------------------------------------------------"""
@@ -405,7 +408,6 @@ class ThermalNetwork(Frame):
                     elmID = 1
                 else:
                     elmID = list(self.elm_dict.keys())[-1] + 1
-
                 if ((self.item_code[-1] == "Conduction" or self.item_code[-1] == "Convection"
                      or self.item_code[-1] == "Radiation" or self.item_code[-1] == "Advection")
                         and self.leftFrame.is_leaf()):
@@ -415,22 +417,48 @@ class ThermalNetwork(Frame):
                     tot_offset = [offset[0] + self.centralFrame.offset[0], offset[1] + self.centralFrame.offset[1]]
                     self.elm_dict[elmID].draw_elm(event.x + tot_offset[0] - graph[0],
                                                   event.y + tot_offset[1] - graph[2] - 15)
-                    """Unbind all the other events on the window"""
+
+                    # Unbind all the other events on the window
                     self.leftFrame.thermal_elm.unbind("<ButtonRelease-1>")
                     self.leftFrame.thermal_elm.unbind("<B1-Motion>")
-                    # self.centralFrame.th_canvas.tag_unbind("drag", "<B1-Motion>")
-                    """Force the connection of the entrance and the exit of the element"""
+                    top_level = self.winfo_toplevel()
+                    top_level.bind("<Escape>", lambda e, idd=elmID: self.interrupt_elm_creation(e, idd))
+
+                    # Force the connection of the entrance and the exit of the element
                     self.selected_elm = elmID
                     self.start_vector = [self.elm_dict[self.selected_elm].ctrX,
                                          self.elm_dict[self.selected_elm].ctrY]
                     self.follow_line = True
                     self.centralFrame.th_canvas.tag_bind("drag", "<ButtonRelease-1>", lambda e: self.connect_node(e))
                     self.centralFrame.th_canvas.bind("<Motion>", lambda e: self.on_move(e))
+                    # bind the ESC key to interrupt the element creation at any time
                 else:
                     elmID = elmID - 1
                     pass
         else:
             pass
+
+    def interrupt_elm_creation(self, e, elmID):
+        self.bottomFrame.write_text('Creation of the element interrupted.\n')
+        self.follow_line = False
+        # remove the trace of the element in the input node if already connected
+        if self.elm_dict[elmID].nodeIn is not None:
+            node_in = self.elm_dict[elmID].nodeIn
+            self.node_dict[node_in].elm_list_in.remove(elmID)
+        # delete the follow line
+        self.centralFrame.th_canvas.delete('connection_line')
+        # cancel the element graphic on screen
+        self.elm_dict[elmID].delete_elm()
+        # cancel the element in the dictionary
+        del self.elm_dict[elmID]
+        # restore the original binds
+        self.selected_elm = None
+        self.selected_node = None
+        self.centralFrame.th_canvas.unbind("<Motion>")
+        self.centralFrame.th_canvas.tag_unbind("drag", "<ButtonRelease-1>")
+        top_level = self.winfo_toplevel()
+        top_level.bind("<Escape>", self.deselectAll)
+        self.bind_events()
 
     def load_node(self, node):
         """Create a node in the graphic window from the loaded file."""
@@ -568,6 +596,8 @@ class ThermalNetwork(Frame):
                     self.selected_node = None
                     self.centralFrame.th_canvas.unbind("<Motion>")
                     self.centralFrame.th_canvas.tag_unbind("drag", "<ButtonRelease-1>")
+                    top_level = self.winfo_toplevel()
+                    top_level.unbind("<Escape>")
                     self.bind_events()
                 else:
                     self.selected_node = None
@@ -629,9 +659,6 @@ class ThermalNetwork(Frame):
             self.draw_line(self.start_vector[0], self.start_vector[1], event.x + offset[0], event.y + offset[1])
 
     def reconnect_elm(self, event):
-        # dividere gli eventi in modo più razionale
-        # - connettori --> riconnessione
-        # - nodi o elementi --> aggiornamento dati da soluzione
         clicked_id = event.widget.find_withtag('current')[0]
         if event.widget.gettags(clicked_id)[1] == "connector_in":
             self.selected_elm = int(event.widget.gettags(clicked_id)[2])
@@ -651,8 +678,6 @@ class ThermalNetwork(Frame):
             node_out = self.elm_dict[self.selected_elm].nodeOut
             if self.selected_elm in self.node_dict[int(node_out)].elm_list_out:
                 self.node_dict[int(node_out)].elm_list_out.remove(self.selected_elm)
-            else:
-                print('The element ' + str(self.selected_elm) + ' does not exist in the list of the node connections')
             self.elm_dict[self.selected_elm].g_conOut = None
             self.elm_dict[self.selected_elm].nodeOut = None
             self.start_vector = [self.elm_dict[self.selected_elm].ctrX, self.elm_dict[self.selected_elm].ctrY]

@@ -10,11 +10,8 @@ import random
     Luca Lombardi
     Rev 0: First Draft
 
-    next steps:
-    scrolling
-    panning
-    zooming
-    background
+    new features or bugs:
+    ...
 """
 
 

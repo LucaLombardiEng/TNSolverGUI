@@ -65,7 +65,7 @@ class ThermalLibrary(Frame):
 
     def get_thermal_elm(self):
         if self.thermal_elm.selection()[0]:
-            # explore the viewtree and collect the parents
+            # explore the treeview widget and collect the parents
             item = self.thermal_elm.selection()[0]
             item_txt = [self.thermal_elm.item(item, option="text")]
             parent = self.thermal_elm.parent(item)
