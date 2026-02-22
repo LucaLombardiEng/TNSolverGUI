@@ -1,4 +1,4 @@
-from .evaluate_properties import fluidprop, betaprop
+from .evaluate_properties import fluidprop_
 from .utility_functions import user_feedback
 import numpy as np
 
@@ -26,7 +26,7 @@ def EFCcyl(mat, V, D, Tf, logfID, prog_report, *text_widget):
         raise ValueError(f'EFCcyl: Invalid cylinder diameter = {D}')
 
     # Evaluate the fluid properties
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr, msg = fluidprop_(mat, Tf, 'EFCcyl', prog_report, logfID, *text_widget)
 
     # Reynolds number
     Re = (rho * V * D) / mu
@@ -85,8 +85,8 @@ def EFCsphere(mat, V, D, Ts, Tf, logfID, prog_report, *text_widget):
     """
 
     # Evaluate the fluid properties
-    k_s, rho_s, cp_s, mu_s, Pr_s = fluidprop(mat, Ts)  # Properties at surface temperature
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)      # Properties at fluid temperature
+    k_s, rho_s, cp_s, mu_s, Pr_s = fluidprop_(mat, Ts, 'EFCsphere (surface side)', prog_report, logfID, *text_widget)
+    k, rho, cp, mu, Pr, msg = fluidprop_(mat, Tf, 'EFCsphere (fluid side)', prog_report, logfID, *text_widget)
 
     # Reynolds number
     Re = (rho * V * D) / mu
@@ -123,7 +123,7 @@ def EFCdiamond(mat, V, D, Tf, logfID, prog_report, *text_widget):
     """
 
     # Evaluate the fluid properties
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr, msg = fluidprop_(mat, Tf, 'EFCdiamond (surface)', prog_report, logfID, *text_widget)
 
     # Reynolds number
     Re = (rho * V * D) / mu
@@ -171,7 +171,7 @@ def EFCimpjet(mat, V, D, H, r, Tf, logfID, prog_report, *text_widget):
         user_feedback(message, prog_report, logfID, *text_widget)
 
     # Evaluate the fluid properties
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr, msg = fluidprop_(mat, Tf, 'EFCimpjet', prog_report, logfID, *text_widget)
 
     # Reynolds number
     Re = (rho * V * D) / mu
@@ -216,7 +216,7 @@ def EFCplate(mat, V, Xbeg, Xend, Tf, logfID, prog_report, *text_widget):
 
     if V > 0.0:
         # Evaluate the fluid properties
-        k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+        k, rho, cp, mu, Pr, msg = fluidprop_(mat, Tf, 'EFCplate', prog_report, logfID, *text_widget)
 
         if Xbeg > 0.0:
             Reb = (rho * V * Xbeg) / mu

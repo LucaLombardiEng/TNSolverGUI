@@ -1,6 +1,7 @@
-import numpy as np
 import datetime
+import numpy as np
 from .utility_functions import setunits, verdate
+
 
 def write_rst(fid, time, nd):
     """Writes the current solution state to the restart file.
@@ -130,148 +131,145 @@ def write_mat(fid, mat, matID=None):
             print("\n")
             print(f"Name = {material.name}")
             if material.state is not None:
-                print(f"State = {state[material.state - 1]}")
+                print(f"State = {material.state}")
 
                 if material.ktype is not None:
                     print("\nThermal Conductivity")
-                    print(f"  Type = {type_[material.ktype - 1]}")
+                    print(f"\n  Type = {type_[material.ktype - 1]}")
                     if material.ktype != POLY and material.ktype != USER:
-                        print(f"  {material.kunits[0]:6s}      {material.kunits[1]:6s}")
+                        print(f"\n  {material.kunits[0]:6s}      {material.kunits[1]:6s}")
                         if material.kdata is not None:
                             for row in material.kdata:
-                                print(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.rhotype is not None:
                     print("\nDensity")
-                    print(f"  Type = {type_[material.rhotype - 1]}")
+                    print(f"\n  Type = {type_[material.rhotype - 1]}")
                     if material.rhotype != POLY and material.rhotype != USER:
-                        print(f"  {material.rhounits[0]:6s}      {material.rhounits[1]:6s}")
+                        print(f"\n  {material.rhounits[0]:6s}      {material.rhounits[1]:6s}")
                         if material.rhodata is not None:
                             for row in material.rhodata:
-                                print(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.cptype is not None:
                     print("\nConstant Pressure Specific Heat")
-                    print(f"  Type = {type_[material.cptype - 1]}")
+                    print(f"\n  Type = {type_[material.cptype - 1]}")
                     if material.cptype != POLY and material.cptype != USER:
-                        print(f"  {material.cpunits[0]:6s}      {material.cpunits[1]:6s}")
+                        print(f"\n  {material.cpunits[0]:6s}      {material.cpunits[1]:6s}")
                         if material.cpdata is not None:
                             for row in material.cpdata:
-                                print(f"  {row[0]:7.1f}  {row[1]:#10g}")
+                                print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.cvtype is not None:
                     print("\nConstant Volume Specific Heat")
-                    print(f"  Type = {type_[material.cvtype - 1]}")
+                    print(f"\n  Type = {type_[material.cvtype - 1]}")
                     if material.cvtype != POLY and material.cvtype != USER:
-                        print(f"  {material.cvunits[0]:6s}      {material.cvunits[1]:6s}")
+                        print(f"\n  {material.cvunits[0]:6s}      {material.cvunits[1]:6s}")
                         if material.cvdata is not None:
-                            for row in material.cvdata:
-                                print(f"  {row[0]:7.1f}  {row[1]:#10g}")
+                            print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.state == LIQUID or material.state == GAS:
                     if material.mutype is not None:
                         print("\nViscosity")
-                        print(f"  Type = {type_[material.mutype - 1]}")
+                        print(f"\n  Type = {type_[material.mutype - 1]}")
                         if material.mutype != POLY and material.mutype != USER:
-                            print(f"  {material.muunits[0]:6s}      {material.muunits[1]:6s}")
+                            print(f"\n  {material.muunits[0]:6s}      {material.muunits[1]:6s}")
                             if material.mudata is not None:
                                 for row in material.mudata:
-                                    print(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                    print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                     if material.betatype is not None:
                         print("\nVolumetric Thermal Expansion Coefficient, beta")
-                        print(f"  Type = {type_[material.betatype - 1]}")
+                        print(f"\n  Type = {type_[material.betatype - 1]}")
                         if material.betatype != POLY and material.betatype != USER:
-                            print(f"  {material.betaunits[0]:6s}      {material.betaunits[1]:6s}")
+                            print(f"\n  {material.betaunits[0]:6s}      {material.betaunits[1]:6s}")
                             if material.betadata is not None:
                                 for row in material.betadata:
-                                    print(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                    print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                     if material.Prtype is not None:
                         print("\nPrandtl number, Pr")
-                        print(f"  Type = {type_[material.Prtype - 1]}")
+                        print(f"\n  Type = {type_[material.Prtype - 1]}")
                         if material.Prtype != POLY and material.Prtype != USER:
-                            print(f"  {material.Prunits[0]:6s}      {material.Prunits[1]:6s}")
+                            print(f"\n  {material.Prunits[0]:6s}      {material.Prunits[1]:6s}")
                             if material.Prdata is not None:
                                 for row in material.Prdata:
-                                    print(f"  {row[0]:7.1f}  {row[1]:10g}")
-
-                print("\nReference:")
-                print(material.ref)
+                                    print(f"\n  {row[0]:7.1f}  {row[1]:10g}")
+                if material.ref is not None:
+                    print("\nReference:")
+                    print(material.ref)
 
         else: #file output
-            fid.write("\n")
-            fid.write(f"Name = {material.name}\n")
+            fid.write(f"\nName = {material.name}")
             if material.state is not None:
-                fid.write(f"State = {state[material.state - 1]}\n")
+                fid.write(f"\nState = {material.state}")
 
                 if material.ktype is not None:
-                    fid.write("\nThermal Conductivity\n")
-                    fid.write(f"  Type = {type_[material.ktype - 1]}\n")
+                    fid.write("\nThermal Conductivity")
+                    fid.write(f"\n  Type = {type_[material.ktype - 1]}")
                     if material.ktype != POLY and material.ktype != USER:
-                        fid.write(f"  {material.kunits[0]:6s}      {material.kunits[1]:6s}\n")
+                        fid.write(f"\n  {material.kunits[0]:6s}      {material.kunits[1]:6s}")
                         if material.kdata is not None:
                             for row in material.kdata:
-                                fid.write(f"  {row[0]:7.1f}  {row[1]:10g}\n")
-                    #rest of the if statements are very similar and therefore omitted for brevity.
+                                fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.rhotype is not None:
-                    fid.write("\nDensity\n")
-                    fid.write(f"  Type = {type_[material.rhotype - 1]}\n")
+                    fid.write("\nDensity")
+                    fid.write(f"\n  Type = {type_[material.rhotype - 1]}")
                     if material.rhotype != POLY and material.rhotype != USER:
-                        fid.write(f"  {material.rhounits[0]:6s}      {material.rhounits[1]:6s}\n")
+                        fid.write(f"\n  {material.rhounits[0]:6s}      {material.rhounits[1]:6s}")
                         if material.rhodata is not None:
                             for row in material.rhodata:
-                                fid.write(f"  {row[0]:7.1f}  {row[1]:10g}\n")
+                                fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.cptype is not None:
                     fid.write("\nConstant Pressure Specific Heat")
-                    fid.write(f"  Type = {type_[material.cptype - 1]}")
+                    fid.write(f"\n  Type = {type_[material.cptype - 1]}")
                     if material.cptype != POLY and material.cptype != USER:
-                        fid.write(f"  {material.cpunits[0]:6s}      {material.cpunits[1]:6s}")
+                        fid.write(f"\n  {material.cpunits[0]:6s}      {material.cpunits[1]:6s}")
                         if material.cpdata is not None:
                             for row in material.cpdata:
-                                 fid.write(f"  {row[0]:7.1f}  {row[1]:#10g}")
+                                fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.cvtype is not None:
                     fid.write("\nConstant Volume Specific Heat")
-                    fid.write(f"  Type = {type_[material.cvtype - 1]}")
+                    fid.write(f"\n  Type = {type_[material.cvtype - 1]}")
                     if material.cvtype != POLY and material.cvtype != USER:
-                        fid.write(f"  {material.cvunits[0]:6s}      {material.cvunits[1]:6s}")
+                        fid.write(f"\n  {material.cvunits[0]:6s}      {material.cvunits[1]:6s}")
                         if material.cvdata is not None:
                             for row in material.cvdata:
-                                 fid.write(f"  {row[0]:7.1f}  {row[1]:#10g}")
+                                fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                 if material.state == LIQUID or material.state == GAS:
                     if material.mutype is not None:
                         fid.write("\nViscosity")
-                        fid.write(f"  Type = {type_[material.mutype - 1]}")
+                        fid.write(f"\n  Type = {type_[material.mutype - 1]}")
                         if material.mutype != POLY and material.mutype != USER:
-                            fid.write(f"  {material.muunits[0]:6s}      {material.muunits[1]:6s}")
+                            fid.write(f"\n  {material.muunits[0]:6s}      {material.muunits[1]:6s}")
                             if material.mudata is not None:
                                 for row in material.mudata:
-                                     fid.write(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                    fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                     if material.betatype is not None:
                         fid.write("\nVolumetric Thermal Expansion Coefficient, beta")
-                        fid.write(f"  Type = {type_[material.betatype - 1]}")
+                        fid.write(f"\n  Type = {type_[material.betatype - 1]}")
                         if material.betatype != POLY and material.betatype != USER:
-                            fid.write(f"  {material.betaunits[0]:6s}      {material.betaunits[1]:6s}")
+                            fid.write(f"\n  {material.betaunits[0]:6s}      {material.betaunits[1]:6s}")
                             if material.betadata is not None:
                                 for row in material.betadata:
-                                     fid.write(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                    fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
                     if material.Prtype is not None:
                         fid.write("\nPrandtl number, Pr")
-                        fid.write(f"  Type = {type_[material.Prtype - 1]}")
+                        fid.write(f"\n  Type = {type_[material.Prtype - 1]}")
                         if material.Prtype != POLY and material.Prtype != USER:
-                            fid.write(f"  {material.Prunits[0]:6s}      {material.Prunits[1]:6s}")
+                            fid.write(f"\n  {material.Prunits[0]:6s}      {material.Prunits[1]:6s}")
                             if material.Prdata is not None:
-                                for row in material.Prdata:
-                                    fid.write(f"  {row[0]:7.1f}  {row[1]:10g}")
+                                fid.write(f"\n  {row[0]:7.1f}  {row[1]:10g}")
 
-                fid.write("\nReference:")
-                fid.write(material.ref)
+                if material.ref is not None:
+                    fid.write("\nReference:")
+                    fid.write(material.ref)
 
 
 def write_out(fid, spar, nd, el, bc, src, ic, enc, mat):

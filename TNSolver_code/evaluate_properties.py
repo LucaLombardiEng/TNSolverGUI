@@ -1,5 +1,313 @@
+"""
+    to do list:
+        - improve the management of the extrapolation messaging and errors for splines and polynomials
+        - update extrapolation treatment for the functions
+        - modify the Solution parameters or the materials attributes to manage the extrapolation
+"""
+
+
 import numpy as np
 from scipy.interpolate import interp1d, pchip_interpolate, PchipInterpolator
+from .utility_functions import user_feedback
+
+
+def interp_func(x_data, y_data, x_target, **kwargs):
+    msg = ''
+    kwargs['fill_value'] = "extrapolate"
+    kwargs['bounds_error'] = False
+    x_min = np.min(x_data)
+    x_max = np.max(x_data)
+    if np.any((x_target < x_min) | (x_target > x_max)):
+        msg = f"extrapolated request outside the range [{x_min}, {x_max}]"
+    f = interp1d(x_data, y_data, **kwargs)
+    y_int = f(x_target)
+
+    return y_int, msg
+
+
+def fluidprop_(mat, T, call_txt, logfID, prog_report, *text_widget):
+    """
+    Evaluate fluid properties.
+
+    Args:
+        mat: Material properties (dictionary or object with fluid data).
+        T: Temperature (NumPy array or list).
+        call_txt: user text to be printed in the user function
+        logfID: log file ID
+        prog_report: progress report coding for writing the output
+        *text_widget: Terminal widget used by the GUI
+
+    Returns:
+        k: Thermal conductivity.
+        rho: Density.
+        cp: Specific heat.
+        mu: Dynamic viscosity.
+        Pr: Prandtl number.  All returned as numpy arrays.
+    """
+
+    # --- 1. Ensure T is a 1D NumPy array ---
+    if not isinstance(T, np.ndarray):
+        T = np.array([T])
+
+    # Helper function to evaluate property based on type
+    def eval_prop(prop_data, prop_type, T_array):
+        msg = ''
+        if prop_type == 1:  # Constant
+            val = np.full(T_array.shape, prop_data[1])
+            return val, msg
+        elif prop_type == 2:  # Table - piecewise linear
+            x_data = prop_data[:, 0]
+            y_data = prop_data[:, 1]
+            val, msg = interp_func(x_data, y_data, T_array)
+            return val, msg
+        elif prop_type == 3:  # Monotonic spline
+            T_clamped = np.maximum(prop_data[0, 0], T_array)
+            T_clamped = np.minimum(prop_data[-1, 0], T_clamped)
+            val = pchip_interpolate(prop_data[:, 0], prop_data[:, 1], T_clamped)
+            outside_range = (T_array < prop_data[0, 0]) | (T_array > prop_data[-1, 0])
+            val[outside_range] = np.nan
+            return val, msg
+        elif prop_type == 4:  # Polynomial
+            val = np.polyval(prop_data, T_array)
+            return val, msg
+        else:
+            # Create a NaN array for unrecognized type
+            nan_array = np.full(T_array.shape, np.nan)
+            return nan_array, msg
+
+    k, msg_k = eval_prop(mat.kdata, mat.ktype, T)
+    if msg_k:
+        message = f'\nWARNING: {call_txt} - thermal conductivity ' + msg_k
+        user_feedback(message, prog_report, logfID, *text_widget)
+
+    rho, msg_rho = eval_prop(mat.rhodata, mat.rhotype, T)
+    if msg_rho:
+        message = f'\nWARNING: {call_txt} - thermal conductivity ' + msg_rho
+        user_feedback(message, prog_report, logfID, *text_widget)
+
+    cp, msg_cp = eval_prop(mat.cpdata, mat.cptype, T)
+    if msg_cp:
+        message = f'\nWARNING: {call_txt} - thermal conductivity ' + msg_cp
+        user_feedback(message, prog_report, logfID, *text_widget)
+
+    mu, msg_mu = eval_prop(mat.mudata, mat.mutype, T)
+    if msg_mu:
+        message = f'\nWARNING: {call_txt} - thermal conductivity ' + msg_mu
+        user_feedback(message, prog_report, logfID, *text_widget)
+
+    Pr, msg_Pr = eval_prop(mat.Prdata, mat.Prtype, T)
+    if msg_Pr:
+        message = f'\nWARNING: {call_txt} - thermal conductivity ' + msg_Pr
+        user_feedback(message, prog_report, logfID, *text_widget)
+
+    return k, rho, cp, mu, Pr
+
+
+def betaprop_(mat, T, logfID, prog_report, *text_widget):
+    """
+    Evaluate the material properties (thermal expansion coefficient).
+
+    Args:
+        mat: A dictionary or object containing material data.  It should
+             have at least the following keys/attributes:
+            'beta_type': An integer indicating the type of beta data (1-4).
+            'beta_data': The data itself. The format depends on 'beta type'.
+                        See the code for details.
+        T: A NumPy array or list of temperatures.
+        call_txt: user text to be printed in the user function
+        logfID: log file ID
+        prog_report: progress report coding for writing the output
+        *text_widget: Terminal widget used by the GUI
+
+    Returns:
+        A NumPy array of thermal expansion coefficients corresponding to T.
+    """
+
+    if isinstance(T, np.ndarray):
+        n = len(T)
+    else:
+        n = 1
+    beta = np.full(n, np.nan)  # Initialize with NaN
+
+    # Thermal expansion coefficient
+
+    beta_type = mat.betatype
+    beta_data = mat.betadata
+
+    if beta_type == 1:  # Constant
+        beta[:] = beta_data[1]  # Or beta_data[1] if beta_data is a list or array
+    elif beta_type == 2:  # Table - piecewise linear
+        beta, msg = interp_func(beta_data[:, 0], beta_data[:, 1], T)
+        if msg:
+            message = f'\nWARNING: {mat.name} - thermal expansion ' + msg
+            user_feedback(message, prog_report, logfID, *text_widget)
+    elif beta_type == 3:  # Monotonic spline (pchip)
+        T = np.maximum(beta_data[0, 0], T)
+        T = np.minimum(beta_data[-1, 0], T)
+        beta = pchip_interpolate(beta_data[:, 0], beta_data[:, 1], T)  # Use pchip_interpolate directly
+    elif beta_type == 4:  # Polynomial
+        beta = np.polyval(beta_data, T)  # beta_data should be the polynomial coefficients
+    else:
+        raise ValueError("Invalid beta type. Must be 1, 2, 3 or 4.")  # Handle invalid type.  Important!
+
+    return beta
+
+
+def kprop_(mat, T, logfID, prog_report, *text_widget):
+    """
+    Calculates thermal conductivity (k) based on material properties and temperature.
+
+    Args:
+        mat: A dictionary or object containing material properties.  Must have
+             'ktype' and 'kdata' fields.  'kdata' structure depends on 'ktype'.
+        T: A numpy array or list of temperatures.
+
+    Returns:
+        A numpy array of thermal conductivities corresponding to the input temperatures.
+        Returns NaN values for any input temperature outside the defined ranges
+        for interpolation methods.
+    """
+
+    if isinstance(T, np.ndarray):
+        n = len(T)
+    else:
+        n = 1
+    k = np.full(n, np.nan, dtype=float)  # Initialize k with NaN values
+
+    # Thermal conductivity
+
+    if mat.ktype == 1:  # Constant
+        k[:] = mat.kdata[1]
+    elif mat.ktype == 2:  # Table - piecewise linear
+        k, msg = interp_func(mat.kdata[:, 0], mat.kdata[:, 1], T)
+        if msg:
+            message = f'\nWARNING: {mat.name} - thermal expansion ' + msg
+            user_feedback(message, prog_report, logfID, *text_widget)
+    elif mat.ktype == 3:  # Monotonic spline (pchip)
+        pchip = PchipInterpolator(mat.kdata[:, 0], mat.kdata[:, 1])
+        k = pchip(T)
+    elif mat.ktype == 4:  # Polynomial
+        k = np.polyval(mat.kdata, T)
+    else:
+      print("ERROR: Invalid k_type specified")
+
+    return k
+
+
+def rhoCpprop_(mat, T, logfID, prog_report, *text_widget):
+    """
+    Evaluates density (rho) and specific heat (cp) material properties.
+
+    Args:
+        mat: A dictionary or object containing material properties. Must have
+             'rhotype', 'rhodata', 'cptype', and 'cpdata' fields.  The structure
+             of 'rhodata' and 'cpdata' depends on the respective type.
+        T: A NumPy array or list of temperatures.
+
+    Returns:
+        A tuple containing two NumPy arrays: rho and cp, corresponding to the
+        input temperatures. Returns NaN values for any input temperature outside the defined ranges
+        for interpolation methods.
+    """
+
+    if isinstance(T, np.ndarray):
+        n = len(T)
+    else:
+        n = 1
+    rho = np.full(n, np.nan, dtype=float)
+    cp = np.full(n, np.nan, dtype=float)
+
+    # Density
+    if mat.rhotype == 1:  # Constant
+        rho[:] = mat.rhodata[1]
+    elif mat.rhotype == 2:  # Table - piecewise linear
+        rho, msg = interp_func(mat.rhodata[:, 0], mat.rhodata[:, 1], T)
+        if msg:
+            message = f'\nWARNING: {mat.name} - thermal expansion ' + msg
+            user_feedback(message, prog_report, logfID, *text_widget)
+    elif mat.rhotype == 3:  # Monotonic spline
+        pchip_rho = PchipInterpolator(mat.rhodata[:, 0], mat.rhodata[:, 1])
+        rho = pchip_rho(T)
+    elif mat.rhotype == 4:  # Polynomial
+        rho = np.polyval(mat.rhodata, T)
+    else:
+        raise ValueError("Invalid rhotype specified")
+
+    # Specific heat
+    if mat.cptype == 1:  # Constant
+        cp[:] = mat.cpdata[1]
+    elif mat.cptype == 2:  # Table - piecewise linear
+        cp, msg = interp_func(mat.cpdata[:, 0], mat.cpdata[:, 1], T)
+        if msg:
+            message = f'\nWARNING: {mat.name} - thermal expansion ' + msg
+            user_feedback(message, prog_report, logfID, *text_widget)
+    elif mat.cptype == 3:  # Monotonic spline
+        pchip_cp = PchipInterpolator(mat.cpdata[:, 0], mat.cpdata[:, 1])
+        cp = pchip_cp(T)
+    elif mat.cptype == 4:  # Polynomial
+        cp = np.polyval(mat.cpdata, T)
+    else:
+        raise ValueError("Invalid cptype specified")
+
+    return rho, cp
+
+
+def rhoCvprop_(mat, T, logfID, prog_report, *text_widget):
+    """
+    Evaluates density (rho) and constant volume specific heat (cv) material properties.
+
+    Args:
+        mat: A dictionary or object containing material properties. Must have
+             'rhotype', 'rhodata', 'cvtype', and 'cvdata' fields.  The structure
+             of 'rhodata' and 'cvdata' depends on the respective type.
+        T: A NumPy array or list of temperatures.
+
+    Returns:
+        A tuple containing two NumPy arrays: rho and cv, corresponding to the
+        input temperatures. Returns NaN values for any input temperature outside the defined ranges
+        for interpolation methods.
+    """
+
+    if isinstance(T, np.ndarray):
+        n = len(T)
+    else:
+        n = 1
+    rho = np.full(n, np.nan, dtype=float)
+    cv = np.full(n, np.nan, dtype=float)
+
+    # Density
+    if mat.rhotype == 1:  # Constant
+        rho[:] = mat.rhodata[0, 1]
+    elif mat.rhotype == 2:  # Table - piecewise linear
+        rho, msg = interp_func(mat.rhodata[:, 0], mat.rhodata[:, 1], T)
+        if msg:
+            message = f'\nWARNING: {mat.name} - thermal expansion ' + msg
+            user_feedback(message, prog_report, logfID, *text_widget)
+    elif mat.rhotype == 3:  # Monotonic spline
+        pchip_rho = PchipInterpolator(mat.rhodata[:, 0], mat.rhodata[:, 1])
+        rho = pchip_rho(T)
+    elif mat.rhotype == 4:  # Polynomial
+        rho = np.polyval(mat.rhodata, T)
+    else:
+        raise ValueError("Invalid rhotype specified")
+
+    # Constant volume specific heat
+    if mat.cvtype == 1:  # Constant
+        cv[:] = mat.cvdata[0, 1]
+    elif mat.cvtype == 2:  # Table - piecewise linear
+        cv, msg = interp_func(mat.cvdata[:, 0], mat.cvdata[:, 1], T)
+        if msg:
+            message = f'\nWARNING: {mat.name} - thermal expansion ' + msg
+            user_feedback(message, prog_report, logfID, *text_widget)
+    elif mat.cvtype == 3:  # Monotonic spline
+        pchip_cv = PchipInterpolator(mat.cvdata[:, 0], mat.cvdata[:, 1])
+        cv = pchip_cv(T)
+    elif mat.cvtype == 4:  # Polynomial
+        cv = np.polyval(mat.cvdata, T)
+    else:
+        raise ValueError("Invalid cvtype specified")
+
+    return rho, cv
 
 
 def fluidprop(mat, T):
@@ -30,7 +338,7 @@ def fluidprop(mat, T):
         elif prop_type == 2:  # Table - piecewise linear
             x_data = prop_data[:, 0]
             y_data = prop_data[:, 1]
-            interpolator = interp1d(x_data, y_data, kind='linear', fill_value=np.nan, bounds_error=False)
+            interpolator = interp1d(x_data, y_data, kind='linear', fill_value=np.nan)
             val = interpolator(T_array)
             return val
         elif prop_type == 3:  # Monotonic spline

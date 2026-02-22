@@ -5,7 +5,7 @@ import re
 import math
 from .utility_functions import verdate, setunits, QCF, functionF, plotfunc, user_feedback
 from .read_functions import read_input_file, Element, Node, InitialCondition, is_float
-from .evaluate_properties import evalfunc, rhoCvprop
+from .evaluate_properties import evalfunc, rhoCvprop_
 from .output_files_writing import write_rst, write_csv_el, write_csv_nd, wrt_time, write_mat, write_out
 from .element_matrix import elmat_radiation, elmat_outflow, elmat_conduction, elmat_convection, elmat_advection
 from .element_preprocessor import elpre_radiation
@@ -269,7 +269,7 @@ def tnsdriver(fid, T, Q, spar, nd, el, bc, src, func, mat, logfID, prog_report, 
                     if nd[nn].matID is not None:  # Check if 'matID' exists
                         if nd[nn].matID > 0:
                             ndT = (nd[nn].T + nd[nn].Told) / 2.0
-                            rho, cv = rhoCvprop(mat[nd[nn].matID], ndT)
+                            rho, cv = rhoCvprop_(mat[nd[nn].matID], ndT, logfID, prog_report, *text_widget)
                             nd[nn].rhocv = rho * cv
                     if nd[nn].mfncID is not None:
                         nd[nn].rhocv = evalfunc(func[nd[nn].mfncID], time)
@@ -784,12 +784,7 @@ def sortndlabels(ndlabels):
 # --------------------------------------------------------------------------------------------------------------------
 
 # T, Q, nd, el = tn_solver('../Test_Gui/pure_conduction_01', False)
-# T, Q, nd, el = tn_solver('../Test_Gui/conduction', False)
-# T, Q, nd, el = tn_solver('../Test_Gui/conduction.transient', False)
-# T, Q, nd, el = tn_solver('../Test_Gui/convection', False)
-# T, Q, nd, el = tn_solver('../Test_Gui/convection2', False)
-# T, Q, nd, el = tn_solver('../Test_Gui/advection_only', False)
-# T, Q, nd, el = tn_solver('../Test_Gui/advection', False)
-# T, Q, nd, el = tn_solver('non_existing_input')
+
+
 
 

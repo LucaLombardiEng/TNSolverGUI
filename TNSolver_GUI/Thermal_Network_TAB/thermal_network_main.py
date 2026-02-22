@@ -34,10 +34,11 @@ from TNSolver_GUI.Thermal_Network_TAB import gUtility
 
 class ThermalNetwork(Frame):
 
-    def __init__(self, parent, functions_dict):
+    def __init__(self, parent, functions_dict, materials_dict):
         Frame.__init__(self, parent)
         # initialize variables
         self.functions_dict = functions_dict
+        self.materials_dict = materials_dict
         self.start_vector = []
         self.selected_elm = None
         self.selected_node = None
@@ -333,7 +334,8 @@ class ThermalNetwork(Frame):
         self.centralFrame = GraphicWindow(self.central_Panned_Window)
         self.centralFrame.naming("Thermal Network Graphic Tree")
         self.bottomFrame = Terminal(self.central_Panned_Window)
-        self.rightFrame = PropertyEditor(self.right_Panned_Window, self.functions_dict, self.update_item)
+        self.rightFrame = PropertyEditor(self.right_Panned_Window, self.functions_dict, self.materials_dict,
+                                         self.update_item)
         self.plotFrame = FunctionPlotter(self.right_Panned_Window)
         self.slider_Frame = ScaleFrame(self.right_Panned_Window)
         self.slider_Frame.disable()
@@ -829,6 +831,9 @@ class ThermalNetwork(Frame):
         self.bottomFrame.write_text('The dictionary of the time functions has been just updated!\n')
         pass
 
+    def update_material(self):
+        self.bottomFrame.write_text('The dictionary of the materials has been just updated!\n')
+        pass
 
 # ---------------------------------------------------------------------------------------------------------------------
 

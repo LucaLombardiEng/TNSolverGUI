@@ -10,7 +10,6 @@
         - rebuild the background from the database
 
         TABS
-        - create the user material tab
         - create the user enclosure tab
         - create the user correlation tab
         - create the user init cond tab
@@ -22,6 +21,7 @@
 """
 import pickle
 import os
+import numpy as np
 from tkinter import Tk, Menu, Toplevel, Label, Button, Frame
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Notebook, Sizegrip
@@ -33,6 +33,8 @@ from TNSolver_GUI.Thermal_Network_TAB.create_input_file import TNSolver_input_fi
 from TNSolver_GUI.Thermal_Network_TAB.dxf_viewer import DXFViewer
 from TNSolver_code.core_solver import tn_solver
 from TNSolver_GUI.Function_TAB.tabular_user_function_main import UserFunctionDefinition
+from TNSolver_GUI.Material_TAB.material_manager_frame_MAIN import MaterialManager
+from TNSolver_code.material_library import matlib
 
 
 def win_about():
@@ -83,6 +85,8 @@ class MainApplication(Frame):
                                        'property_unit': None,
                                        'time_unit': None,
                                        'option': None}}
+        self.raw_materials = matlib()
+        self.project_material_dict = self.convert_to_gui_dict(self.raw_materials)
         self.thermal_network_tab = None
         self.user_function_tab = None
         self.user_material_tab = None
@@ -129,11 +133,13 @@ class MainApplication(Frame):
         pass
 
     def setup_notebook(self):
-        self.thermal_network_tab = ThermalNetwork(self.tab_ctrl, self.functions_dict)
+        self.thermal_network_tab = ThermalNetwork(self.tab_ctrl, self.functions_dict, self.project_material_dict)
         # Create the tabs, passing the data store and update method
         self.user_function_tab = UserFunctionDefinition(self.tab_ctrl, self.functions_dict,
                                                         self.update_function_callback)
-        self.user_material_tab = Frame(self.tab_ctrl)
+        self.user_material_tab = MaterialManager(self.tab_ctrl, self.project_material_dict,
+                                                 self.update_material_callback, gUtility.path)
+        # self.user_material_tab = Frame(self.tab_ctrl)
         self.user_enclosure_tab = Frame(self.tab_ctrl)
         self.user_correlation_tab = Frame(self.tab_ctrl)
         self.user_init_cond_tab = Frame(self.tab_ctrl)
@@ -156,6 +162,80 @@ class MainApplication(Frame):
         """
         self.thermal_network_tab.update_functions()
 
+    def update_material_callback(self):
+        """
+        This is the central method that user_function_tab calls to trigger an update.
+        It then calls the specific update method on thermal_network_tab.
+        """
+        self.thermal_network_tab.update_material()
+
+    @staticmethod
+    def convert_to_gui_dict(materials_list):
+        """Converts Material objects to the GUI-compatible dictionary format."""
+        gui_dict = {}
+        prop_map = [
+            ('Thermal_Conductivity', 'ktype', 'kunits', 'kdata'),
+            ('Mass_Density', 'rhotype', 'rhounits', 'rhodata'),
+            ('Specific_Heat', 'cptype', 'cpunits', 'cpdata'),
+            ('Dynamic_Viscosity', 'mutype', 'muunits', 'mudata'),
+            ('Thermal_Expansion', 'betatype', 'betaunits', 'betadata'),
+            ('Prandtl_Number', 'Prtype', 'Prunits', 'Prdata')
+        ]
+
+        for m in materials_list:
+            mat_props = {}
+
+            # Metadata
+            state_labels = {1: "Solid", 2: "Liquid", 3: "Gas"}
+            category = state_labels.get(m.state, "Other")
+            mat_props['Category'] = {'type': 'scalar', 'value': state_labels.get(m.state, "Other"), 'unit': ''}
+
+            # Logic: If it's a liquid or gas, it's definitely a FluidMaterial.
+            # For "Other", you can set this manually or based on library flags.
+            is_fluid = m.state in [2, 3] or category == "Other"  # Adjust logic as needed
+            mat_props['Material_Type'] = {
+                'type': 'scalar',
+                'value': 'FluidMaterial' if is_fluid else 'SolidMaterial',
+                'unit': ''
+            }
+
+            # Handle Standard/Tabular Properties (including Prandtl Number)
+            for gui_name, type_attr, unit_attr, data_attr in prop_map:
+                p_type_val = getattr(m, type_attr)
+                p_units = getattr(m, unit_attr)
+                p_data = getattr(m, data_attr)
+
+                if p_data is not None:
+                    if p_type_val == 1:  # CONST/Scalar
+                        val = p_data[1] if isinstance(p_data, (np.ndarray, list)) and len(p_data) > 1 else p_data
+                        mat_props[gui_name] = {
+                            'type': 'scalar', 'value': str(val), 'unit': p_units[1] if p_units else ""
+                        }
+                    else:  # TABLE/SPLINE
+                        q_vals = ",".join(map(str, p_data[:, 0]))
+                        v_vals = ",".join(map(str, p_data[:, 1]))
+                        mat_props[gui_name] = {
+                            'type': 'table',
+                            'qualifier_name': 'Temperature',
+                            'qualifier_unit': p_units[0] if p_units else "K",
+                            'qualifier_data': q_vals,
+                            'param_name': gui_name,
+                            'param_unit': p_units[1] if p_units else "",
+                            'param_data': v_vals
+                        }
+
+            # Handle Gas Constant (Stored directly in m.R and m.Runits)
+            if m.R is not None:
+                mat_props['Gas_Constant'] = {
+                    'type': 'scalar',
+                    'value': str(m.R),
+                    'unit': str(m.Runits) if m.Runits else "J/kg-K"
+                }
+
+            gui_dict[m.name] = mat_props
+
+        return gui_dict
+
     def new_network(self):
         check = messagebox.askyesno(title="Create a new Network", message="Do you want to create a new network?")
         if check:
@@ -167,6 +247,14 @@ class MainApplication(Frame):
                                           'property_unit': None,
                                           'time_unit': None,
                                           'option': None}
+
+            # material dictionary reset and update
+            self.project_material_dict.clear()
+            # preserve the default materials
+            self.project_material_dict.update(self.convert_to_gui_dict(self.raw_materials))
+            self.user_material_tab.reset_database()
+
+            # updating the UI
             self.thermal_network_tab.bottomFrame.clear_text()
             self.thermal_network_tab.welcome_message()
             self.user_function_tab.data_frame.reset_all()
@@ -221,6 +309,15 @@ class MainApplication(Frame):
                     # self.thermal_network_tab.update_functions()
                     self.thermal_network_tab.rightFrame.group_functions_by_unit()
                     self.user_function_tab.refresh_display()  # trigger the update of the fn dictionary in the fn tab
+                else:
+                    pass
+
+                # retrieve the Material database
+                if 'Materials' in serialized_data:
+                    self.project_material_dict.clear()  # clear the dictionary
+                    # update the main Material dictionary
+                    self.project_material_dict.update(serialized_data['Materials'])
+                    self.user_material_tab.reset_database()
                 else:
                     pass
 
@@ -297,13 +394,15 @@ class MainApplication(Frame):
         serialized_elm = self.thermal_network_tab.get_element()
         serialized_solution = self.thermal_network_tab.solution_Frame.serialize()
         serialized_functions = self.functions_dict
+        serialized_materials = self.project_material_dict
 
         # Serialize the object to a binary format
 
         data_to_save = {"Nodes": serialized_nodes,
                         "Elements": serialized_elm,
                         "Solution": serialized_solution,
-                        "Functions": serialized_functions
+                        "Functions": serialized_functions,
+                        "Materials": serialized_materials
                         }
         filepath = os.path.join(self.working_folder, self.filename)
 
@@ -349,7 +448,9 @@ class MainApplication(Frame):
                                         serialized_nodes,
                                         serialized_elm,
                                         self.thermal_network_tab.solution_Frame.initialize_all,
-                                        self.functions_dict)
+                                        self.functions_dict,
+                                        self.project_material_dict
+                                        )
             else:
                 self.thermal_network_tab.bottomFrame.write_text(
                     'ERROR: The Working folder is not defined.\n')

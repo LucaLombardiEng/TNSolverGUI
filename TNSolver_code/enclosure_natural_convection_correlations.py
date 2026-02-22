@@ -1,5 +1,5 @@
 import numpy as np
-from .evaluate_properties import fluidprop, betaprop
+from .evaluate_properties import fluidprop_, betaprop_
 from .utility_functions import user_feedback
 
 # Define g (gravity) globally or pass it as an argument
@@ -24,9 +24,9 @@ def ENChcyl(mat, D, Ts, Tinf, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENChcyl', prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENChcyl', prog_report, logfID, *text_widget)
 
     # Rayleigh number
     Ra = (g * rho**2 * cp * beta * D**3 * abs(Ts - Tinf)) / (k * mu)
@@ -64,13 +64,13 @@ def ENChplateup(mat, L, Ts, Tinf, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENChplateup', prog_report, logfID, *text_widget)
 
     if Pr < 0.7:
         message = '\nWARNING: ENChplateup - Pr number = {}, is below 0.7'.format(Pr)
         user_feedback(message, prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENChplateup', prog_report, logfID, *text_widget)
 
     # Rayleigh number
     Ra = (g * rho**2 * cp * beta * L**3 * abs(Ts - Tinf)) / (k * mu)
@@ -123,13 +123,13 @@ def ENChplatedown(mat, L, Ts, Tinf, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENChplatedown', prog_report, logfID, *text_widget)
 
     if Pr < 0.7:
         message = '\nWARNING: ENChplatedown - Pr number = {}, is below 0.7.'.format(Pr)
         user_feedback(message, prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENChplatedown', prog_report, logfID, *text_widget)
 
     # Rayleigh number
     Ra = (g * rho**2 * cp * beta * L**3 * abs(Ts - Tinf)) / (k * mu)
@@ -181,9 +181,9 @@ def ENCiplatedown(mat, H, L, theta, Ts, Tinf, logfID, prog_report, *text_widget)
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENCiplatedown', prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENCiplatedown', prog_report, logfID, *text_widget)
 
     # --- Unstable - cold plate facing down ---
     if Ts < Tinf:
@@ -265,9 +265,9 @@ def ENCiplateup(mat, H, L, theta, Ts, Tinf, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENCiplateup', prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENCiplateup', prog_report, logfID, *text_widget)
 
     # --- Stable - cold plate facing up ---
     if Ts < Tinf:
@@ -346,9 +346,9 @@ def ENCvplate(mat, L, Ts, Tinf, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENCvplate', prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENCvplate', prog_report, logfID, *text_widget)
 
     # Rayleigh number
     Ra = (g * rho**2 * cp * beta * L**3 * abs(Ts - Tinf)) / (k * mu)
@@ -385,9 +385,9 @@ def ENCsphere(mat, D, Ts, Tinf, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (Ts + Tinf) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)  # Assuming fluidprop is defined elsewhere
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'ENCsphere', prog_report, logfID, *text_widget)
 
-    beta = betaprop(mat, Tinf)  # Assuming betaprop is defined elsewhere
+    beta = betaprop_(mat, Tinf, 'ENCsphere', prog_report, logfID, *text_widget)
 
     # Rayleigh number
     Ra = (g * rho**2 * cp * beta * D**3 * abs(Ts - Tinf)) / (k * mu)

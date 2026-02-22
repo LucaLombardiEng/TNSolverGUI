@@ -4,11 +4,11 @@
 
     Luca Lombardi
     Rev 0: First Draft
+    Rev 1: 2026 Feb 04 management of the imported material database added
 
     To Do:
-        - Switch from an node or element type to another properly
-        - switch to a value to a function
-        - ...
+        - manage the change of the properties of a node or element type
+
 """
 from tkinter import Tk, LabelFrame, Frame, END, Button, Entry, BooleanVar, StringVar
 from tkinter.ttk import Treeview, OptionMenu
@@ -16,7 +16,7 @@ from pint import UnitRegistry
 
 from TNSolver_GUI.Thermal_Network_TAB.thermal_node import ThermalNode
 from TNSolver_GUI.Thermal_Network_TAB.thermal_element import ThermalElm
-from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, fluid_list, node_type, elm_type, angle_units,
+from TNSolver_GUI.Thermal_Network_TAB.gUtility import (node_type, elm_type, angle_units,
                                                        htc_unit, length_units_SI, area_unit_SI, volume_unit_SI,
                                                        density_unit_SI, specific_heat_unit, velocity_unit,
                                                        temperature_unit, heat_flux_unit, volumetric_power_unit,
@@ -24,11 +24,11 @@ from TNSolver_GUI.Thermal_Network_TAB.gUtility import (material_list, fluid_list
 
 
 class PropertyEditor(Frame):
-    def __init__(self, parent, fn_dict, change_callback):
+    def __init__(self, parent, fn_dict, mat_dict, change_callback):
         Frame.__init__(self, parent)
 
+        self.material_option = None
         self.change_released = BooleanVar(value=False)
-
         self._frame_prop_edit = LabelFrame(self, text="Property Editor", height=450, width=2000, padx=10, pady=10)
         self._frame_prop_edit.pack(side='left', pady=10, expand=1, fill='x', anchor='n')
         """ dummy items to contain the data """
@@ -50,11 +50,28 @@ class PropertyEditor(Frame):
 
         self.change_released.trace_add("write", change_callback)
         self.fn_dict = fn_dict
+        self.mat_dict = mat_dict
         self._switch_2_func = None
         self._change_node_type = None
         self._fn_option = None
         self._grouped_fn = {}
         self.group_functions_by_unit()
+
+    def _get_material_lists(self):
+        """Returns (full_list, fluid_list) preserving the 'user defined' logic only for full_list."""
+        all_mats = [m.lower() for m in self.mat_dict.keys()]
+        full_list = ["user defined"] + all_mats
+
+        fluid_names = []
+        for name, props in self.mat_dict.items():
+            cat = props.get('Category', {}).get('value', '').lower()
+            m_type = props.get('Material_Type', {}).get('value', '').lower()
+            if cat in ['liquid', 'gas'] or m_type == 'fluidmaterial':
+                fluid_names.append(name.lower())
+
+        # Removed ["user defined"] from the fluid_list concatenation
+        fluid_list = fluid_names
+        return full_list, fluid_list
 
     def on_double_click(self, event):
         # This function manage the property treeview to modify the data of a node or element
@@ -110,11 +127,9 @@ class PropertyEditor(Frame):
                     entry_box.bind("<Return>", lambda e: self.on_enter_press(e, selected_iid, selected_column))
                 elif selected_iid == '4':
                     # the cell for material has been selected
-                    self.material_option = OptionMenu(self._frame_prop_edit,
-                                                      material_selected,
-                                                      selected_text,
-                                                      *material_list,
-                                                      command=lambda m: self._set_material(m, selected_iid))
+                    full_list, _ = self._get_material_lists()
+                    self.material_option = OptionMenu(self._frame_prop_edit, material_selected, selected_text,
+                                                      *full_list, command=lambda m: self._set_material(m, selected_iid))
                     # remember to add the pady or padx in case of modifications in the placement of the
                     # _frame_prop_edit frame. place do not consider this from the pack method.
                     self.material_option.place(x=selected_box[0],
@@ -340,16 +355,10 @@ class PropertyEditor(Frame):
                     entry_box.bind("<FocusOut>", self.box_focus_out)
                     entry_box.bind("<Return>", lambda e: self.on_enter_press(e, selected_iid, selected_column))
                 elif selected_iid == '5':
-                    # the cell for material has been selected
-                    if item_type.get('values')[0] == 'Conduction':
-                        _material_list = material_list
-                    else:
-                        _material_list = fluid_list
-                    self.material_option = OptionMenu(self._frame_prop_edit,
-                                                      material_selected,
-                                                      selected_text,
-                                                      *_material_list,
-                                                      command=lambda m: self._set_material(m, selected_iid))
+                    full_list, fluid_list = self._get_material_lists()
+                    _list = fluid_list if item_type.get('values')[0] in ['Convection', 'Advection'] else full_list
+                    self.material_option = OptionMenu(self._frame_prop_edit, material_selected, selected_text,
+                                                      *_list, command=lambda m: self._set_material(m, selected_iid))
                     # remember to add the pady or padx in case of modifications in the placement of the
                     # _frame_prop_edit frame. place do not consider this from the pack method.
                     self.material_option.place(x=selected_box[0],
@@ -405,7 +414,7 @@ class PropertyEditor(Frame):
                                                                                    selected_iid))
                 elif selected_iid == '10':
                     # angle units
-                     self.unit_option = OptionMenu(self._frame_prop_edit,
+                    self.unit_option = OptionMenu(self._frame_prop_edit,
                                                   unit_selected,
                                                   selected_text,
                                                   *angle_units[0],
@@ -486,6 +495,7 @@ class PropertyEditor(Frame):
         self.toggle_var()
 
     def _set_material(self, material, selected_iid):
+        # 1. Update the UI tree value
         self.property_tree.set(selected_iid, "value", material)
         self.material_option.destroy()
         self.update_properties()
@@ -521,6 +531,15 @@ class PropertyEditor(Frame):
             self.toggle_var()
         else:
             pass
+
+    def refresh_ui(self):
+        """Centralized method to rebuild the property table based on current selection."""
+        if hasattr(self, 'dummy_node') and self.dummy_node is not None:
+            # We are editing a node
+            self.edit_node(self.dummy_node)
+        elif hasattr(self, 'dummy_elm') and self.dummy_elm is not None:
+            # We are editing an element
+            self.edit_elm(self.dummy_elm)
 
     def toggle_var(self):
         self.change_released.set(not self.change_released.get())  # Flip the boolean value

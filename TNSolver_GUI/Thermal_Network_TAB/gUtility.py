@@ -42,7 +42,8 @@ elm_type = {'Conduction': ('Linear conduction', 'Cylindrical conduction', 'Spher
             'Radiation': ('Surface Radiation', 'Radiation'),
             'Advection': ('Advection', 'Outflow')}
 
-material_list = ("user defined", "air", "water", "steel")
+path = "Documentation/physicalmateriallibrary.xml"
+material_list = ("user defined", "air", "water", "steel", "fir")
 fluid_list = ("air", "water")
 
 time_unit = (('ms', 's', 'm', 'h'), ('ms', 's', 'min', 'h'))

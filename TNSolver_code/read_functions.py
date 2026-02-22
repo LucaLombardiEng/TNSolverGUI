@@ -1622,6 +1622,16 @@ def parse_functions(lines, line_number, func, inp_err, logfID, prog_report, *tex
 
 def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, *text_widget):
     """Reads a material property block from the input file."""
+    data_type_dict = {'CONST': 1,
+                      'TABLE': 2,
+                      'SPLINE': 3,
+                      'POLY': 4,
+                      'USER': 5}
+    mat.append(Material())
+    str_ = re.split(r'!', lines[line_number])[0]  # Split at '!' (comment character)
+    str_ = str_.strip()  # Trim whitespace
+    tokens = re.findall(r'\S+', str_)
+    mat[-1].name = '_'.join(tokens[2:])
 
     while line_number < len(lines):
         line_number += 1
@@ -1634,9 +1644,8 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
         n_tokens = len(tokens)
 
         if n_tokens > 0:  # Check if tok is not empty
-            mat.append(Material())
             if tokens[0].upper() == 'STATE':
-                state = tokens[1].upper()
+                state = tokens[2].upper()
                 if state == 'SOLID' or state == 'LIQUID' or state == 'GAS':
                     mat[-1].state = state
                 else:
@@ -1647,12 +1656,12 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
 
             elif tokens[0].upper() == 'DENSITY':
                 dens = tokens[1].upper()
-
                 if dens == 'TABLE' or dens == 'SPLINE' or dens == 'POLYNOMIAL':
-                    mat[-1].rhotype = dens
+                    mat[-1].rhotype = data_type_dict[dens]
                     mat[-1].rhounits = ['(K)', '(kg/m^3)']
                     mat[-1].rhodata = []  # Initialize as a list
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_keyword = f'end.*density.*{dens.lower()}'  # Construct end keyword dynamically
                         if not re.search(end_keyword, str_, re.IGNORECASE):
@@ -1672,10 +1681,10 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                     pass
 
                 else:
-                    mat[-1].rhotype = 'CONST'
+                    mat[-1].rhotype = data_type_dict['CONST']
                     mat[-1].rhounits = ['(K)', '(kg/m^3)']
                     if is_float(tokens[2]):
-                        mat[-1].rhodata = np.array([Toff, float(tokens[2])])  # NumPy array
+                        mat[-1].rhodata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid density data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1684,32 +1693,31 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
 
             elif tokens[0].upper() == 'CONDUCTIVITY':
                 cond = tokens[1].upper()
+                mat[-1].kunits = ['(K)', '(W/m-K)']
                 if cond == 'TABLE' or cond == 'SPLINE' or cond == 'POLYNOMIAL':
-                    mat[-1].ktype = cond
-                    mat[-1].kunits = ['(K)', '(W/m-K)']
+                    mat[-1].ktype = data_type_dict[cond]
                     mat[-1].kdata = []  # Initialize as a list
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_keyword = f'end.*conductivity.*{cond.lower()}'  # Construct end keyword dynamically
                         if not re.search(end_keyword, str_, re.IGNORECASE):
-                            if not re.search(end_keyword, str_, re.IGNORECASE):
-                                tokens = re.findall(r'\S+', str_)
-                                if is_float(tokens[0]) and float(tokens[1]):
-                                    mat[-1].kdata.append([float(tokens[0]) + Toff, float(tokens[1])])
-                                else:
-                                    message = ('\nERROR: Invalid conductivity data at line {} in the input file:\n{}.'.
-                                               format(line_number + 1, str_))
-                                    user_feedback(message, prog_report, logfID, *text_widget)
-                                    inp_err = 1
+                            tokens = re.findall(r'\S+', str_)
+                            if is_float(tokens[0]) and float(tokens[1]):
+                                mat[-1].kdata.append([float(tokens[0]) + Toff, float(tokens[1])])
                             else:
-                                # Convert to numpy array after reading all data
-                                mat[-1].kdata = np.array(mat[-1].kdata)
-                                break
+                                message = ('\nERROR: Invalid conductivity data at line {} in the input file:\n{}.'.
+                                           format(line_number + 1, str_))
+                                user_feedback(message, prog_report, logfID, *text_widget)
+                                inp_err = 1
+                        else:
+                            # Convert to numpy array after reading all data
+                            mat[-1].kdata = np.array(mat[-1].kdata)
+                            break
                 else:
-                    mat[-1].ktype = 'CONST'
-                    mat[-1].kunits = ['(K)', '(W/m-K)']
+                    mat[-1].ktype = data_type_dict['CONST']
                     if is_float(tokens[2]):
-                        mat[-1].kdata = np.array([Toff, float(tokens[2])])  # NumPy array
+                        mat[-1].kdata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid conductivity data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1717,12 +1725,13 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                         inp_err = 1
 
             elif tokens[0].upper() == 'SPECIFIC' or tokens[0].upper() == 'C_V':
-                cv = tokens[2].upper()
+                cv = tokens[1].upper()
                 mat[-1].cvunits = ['(K)', '(J/kg-K)']
                 if cv == 'TABLE' or cv == 'SPLINE' or cv == 'POLYNOMIAL':
-                    mat[-1].cvtype = cv
+                    mat[-1].cvtype = data_type_dict[cv]
                     mat[-1].cvdata = []
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_key = f'end.*{"specific heat" if tokens[0].upper() == "SPECIFIC" else "c_v"}.*{cv.lower()}'
                         if not re.search(end_key, str_, re.IGNORECASE):
@@ -1739,9 +1748,9 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                             mat[-1].cvdata = np.array(mat[-1].cvdata)
                             break
                 else:
-                    mat[-1].cvtype = 'CONST'
-                    if is_float(tokens[3]):
-                        mat[-1].cvdata = np.array([Toff, float(tokens[3])])  # NumPy array
+                    mat[-1].cvtype = data_type_dict['CONST']
+                    if is_float(tokens[2]):
+                        mat[-1].cvdata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid C_v data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1749,18 +1758,19 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                         inp_err = 1
 
             elif tokens[0].upper() == 'C_P':
-                cp = tokens[2].upper()
+                cp = tokens[1].upper()
                 mat[-1].cpunits = ['(K)', '(J/kg-K)']
                 if cp == 'TABLE' or cp == 'SPLINE' or cp == 'POLYNOMIAL':
-                    mat[-1].cptype = cp
+                    mat[-1].cptype = data_type_dict[cp]
                     mat[-1].cpdata = []
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_keyword = f'end.*c_p.*{cp.lower()}'
                         if not re.search(end_keyword, str_, re.IGNORECASE):
                             tokens = re.findall(r'\S+', str_)
                             if is_float(tokens[0]) and float(tokens[1]):
-                                mat[-1].cvdata.append([float(tokens[0]) + Toff, float(tokens[1])])
+                                mat[-1].cpdata.append([float(tokens[0]) + Toff, float(tokens[1])])
                             else:
                                 message = ('\nERROR: Invalid C_p data at line {} in the input file:\n{}.'.
                                            format(line_number + 1, str_))
@@ -1771,9 +1781,9 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                             mat[-1].cpdata = np.array(mat[-1].cpdata)
                             break
                 else:
-                    mat[-1].cptype = 'CONST'
-                    if is_float(tokens[3]):
-                        mat[-1].cpdata = np.array([Toff, float(tokens[3])])  # NumPy array
+                    mat[-1].cptype = data_type_dict['CONST']
+                    if is_float(tokens[2]):
+                        mat[-1].cpdata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid C_p data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1781,12 +1791,13 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                         inp_err = 1
 
             elif tokens[0].upper() == 'VISCOSITY':
-                mu = tokens[2].upper()
+                mu = tokens[1].upper()
                 mat[-1].muunits = ['(K)', '(kg/m-s)']
                 if mu == 'TABLE' or mu == 'SPLINE' or mu == 'POLYNOMIAL':
-                    mat[-1].mutype = mu
+                    mat[-1].mutype = data_type_dict[mu]
                     mat[-1].mudata = []
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_keyword = f'end.*viscosity.*{mu.lower()}'
                         if not re.search(end_keyword, str_, re.IGNORECASE):
@@ -1803,9 +1814,9 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                             mat[-1].mudata = np.array(mat[-1].mudata)
                             break
                 else:
-                    mat[-1].mutype = 'CONST'
+                    mat[-1].mutype = data_type_dict['CONST']
                     if is_float(tokens[2]):
-                        mat[-1].mudata = np.array([Toff, float(tokens[2])])  # NumPy array
+                        mat[-1].mudata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid viscosity data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1813,12 +1824,13 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                         inp_err = 1
 
             elif tokens[0].upper() == 'BETA':
-                beta = tokens[2].upper()
+                beta = tokens[1].upper()
                 mat[-1].betaunits = ['(K)', '(1/K)']
                 if beta == 'TABLE' or beta == 'SPLINE' or beta == 'POLYNOMIAL':
-                    mat[-1].betatype = beta
+                    mat[-1].betatype = data_type_dict[beta]
                     mat[-1].betadata = []
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_keyword = f'end.*beta.*{beta.lower()}'
                         if not re.search(end_keyword, str_, re.IGNORECASE):
@@ -1835,9 +1847,9 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                             mat[-1].betadata = np.array(mat[-1].betadata)
                             break
                 else:
-                    mat[-1].betatype = 'CONST'
+                    mat[-1].betatype = data_type_dict['CONST']
                     if is_float(tokens[2]):
-                        mat[-1].betadata = np.array([Toff, float(tokens[2])])  # NumPy array
+                        mat[-1].betadata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid Beta data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1845,12 +1857,13 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                         inp_err = 1
 
             elif tokens[0].upper() == 'PR':
-                Pr = tokens[2].upper()
+                Pr = tokens[1].upper()
                 mat[-1].Prunits = ['(K)', '']
                 if Pr == 'TABLE' or Pr == 'SPLINE' or Pr == 'POLYNOMIAL':
-                    mat[-1].Prtype = beta
+                    mat[-1].Prtype = data_type_dict[Pr]
                     mat[-1].Prdata = []
                     while line_number < len(lines):
+                        line_number += 1
                         str_, line_number = nextline(lines, line_number)
                         end_keyword = f'end.*Pr.*{Pr.lower()}'
                         if not re.search(end_keyword, str_, re.IGNORECASE):
@@ -1864,12 +1877,12 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
                                 inp_err = 1
                         else:
                             # Convert to numpy array after reading all data
-                            mat[-1].betadata = np.array(mat[-1].betadata)
+                            mat[-1].Prdata = np.array(mat[-1].betadata)
                             break
                 else:
-                    mat[-1].Prtype = 'CONST'
+                    mat[-1].Prtype = data_type_dict['CONST']
                     if is_float(tokens[2]):
-                        mat[-1].Prdata = np.array([Toff, float(tokens[2])])  # NumPy array
+                        mat[-1].Prdata = np.atleast_2d([Toff, float(tokens[2])])  # NumPy array
                     else:
                         message = ('\nERROR: Invalid Pr number data at line {} in the input file:\n{}.'.
                                    format(line_number + 1, str_))
@@ -1878,8 +1891,8 @@ def parse_material(lines, line_number, mat, inp_err, logfID, Toff, prog_report, 
 
             elif tokens[0].upper() == 'GAS':
                 mat[-1].Runits = ['K', '']
-                if is_float(tokens[2]):
-                    mat[-1].R = float(tokens[2])
+                if is_float(tokens[3]):
+                    mat[-1].R = float(tokens[3])
                 else:
                     message = ('\nERROR: Invalid gas constant data at line {} in the input file:\n{}.'.
                                format(line_number + 1, str_))

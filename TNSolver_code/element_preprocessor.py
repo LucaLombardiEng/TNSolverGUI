@@ -1,4 +1,4 @@
-from .evaluate_properties import kprop, rhoCpprop
+from .evaluate_properties import kprop_, rhoCpprop_
 from .external_flow_correlations import EFCdiamond, EFCcyl, EFCplate, EFCimpjet, EFCsphere
 from .enclosure_natural_convection_correlations import (ENChcyl, ENCsphere, ENCvplate, ENChplateup, ENCiplateup,
                                                         ENChplatedown, ENCiplatedown)
@@ -13,7 +13,7 @@ def elpre_advection(el, mat, Tel, logfID, prog_report, *text_widget):
         el: A dictionary or object representing the element. Must contain
             'A' (area), 'vel' (velocity), and 'matID' (material ID) fields.
         mat: A list or dictionary of material properties.  `mat[el.matID]`
-             should be usable with `rhoCpprop`.
+             should be usable with `rhoCpprop_`.
         Tel: A list or array of temperatures at the element nodes.  `Tel[0]` is
             the upstream node temperature, and `Tel[1]` is the downstream node.
         logfID: log file ID
@@ -31,7 +31,7 @@ def elpre_advection(el, mat, Tel, logfID, prog_report, *text_widget):
     if U < 0.0:
         elT = Tel[1]
 
-    rho, cp = rhoCpprop(mat[el.matID], elT)  # Assuming mat is a list/dictionary
+    rho, cp = rhoCpprop_(mat[el.matID], elT, logfID, prog_report, *text_widget)
 
     el.mdot = rho * U * Area
     el.cp = cp
@@ -61,7 +61,7 @@ def elpre_conduction(el, mat, Tel, logfID, prog_report, *text_widget):
 
     if el.matID != '':  # Check if el.matID is not empty
         elT = (Tel[0] + Tel[1]) / 2.0  # Use average temperature
-        el.k = kprop(mat[el.matID], elT)
+        el.k = kprop_(mat[el.matID], elT, logfID, prog_report, *text_widget)
 
     return el
 

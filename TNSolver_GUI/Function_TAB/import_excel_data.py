@@ -238,6 +238,7 @@ class ExcelImporterApp(Frame):
             return self.data_dictionary
         else:
             messagebox.showinfo('Error!', 'No numerical values found, check the file!')
+            return None
 
 
 if __name__ == "__main__":

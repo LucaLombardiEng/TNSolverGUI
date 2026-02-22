@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.constants import g
-from .evaluate_properties import fluidprop, betaprop
+from .evaluate_properties import fluidprop_, betaprop_
 from .utility_functions import user_feedback
 
 
@@ -26,8 +26,8 @@ def INCvenc(mat, W, H, T1, T2, logfID, prog_report, *text_widget):
 
     # Evaluate the fluid properties
     Tf = (T1 + T2) / 2.0
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)
-    beta = betaprop(mat, Tf)
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'INCvenc', prog_report, logfID, *text_widget)
+    beta = betaprop_(mat, Tf, 'INCvenc', prog_report, logfID, *text_widget)
 
     # Rayleigh number
     Ra = (g * rho ** 2 * cp * beta * W ** 3 * abs(T1 - T2)) / (k * mu)
@@ -81,7 +81,7 @@ def IFCduct(mat, V, D, Tf, logfID, prog_report, *text_widget):
     """
 
     # Evaluate the fluid properties
-    k, rho, cp, mu, Pr = fluidprop(mat, Tf)
+    k, rho, cp, mu, Pr = fluidprop_(mat, Tf, 'IFCduct', prog_report, logfID, *text_widget)
 
     if Pr < 0.5 or Pr > 2000:
         message = '\nWARNING: IFCduct - Pr number = {}, is out of range 0.5 < Pr < 2000.'.format(Pr)
