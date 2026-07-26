@@ -624,7 +624,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
     mat_list = [x for x in all_mat_list if x not in material_list]
     if mat_list:  # check if there are functions stored on top of the default
         for mat in mat_list:
-            f.write("Begin Material\t" + mat + "\n")
+            f.write("Begin Material\t" + mat.casefold() + "\n")
             prop_keys = materials[mat].keys()
             f.write('\n')
             f.write("  State = " + materials[mat]['State']['value'] + "\n\n")
@@ -676,15 +676,24 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
             if 'Specific_Heat' in prop_keys:
                 if materials[mat]['Specific_Heat']['type'] == 'scalar':
                     parameter = float(materials[mat]['Specific_Heat']['value'])
-                    f.write("  c_p = " + str(parameter) + "\t!constant value\n\n")
+                    if materials[mat]['State']['value'] in ['Solid', 'Liquid']:
+                        f.write("  c_v = " + str(parameter) + "\t!constant value\n\n")
+                    else:
+                        f.write("  c_p = " + str(parameter) + "\t!constant value\n\n")
                 elif materials[mat]['Specific_Heat']['type'] == 'table':
-                    f.write("  c_p Table\n")
+                    if materials[mat]['State']['value'] in ['Solid', 'Liquid']:
+                        f.write("  c_v Table\n")
+                    else:
+                        f.write("  c_p Table\n")
                     for idx in range(len(materials[mat]['Specific_Heat']['qualifier_data'])):
                         temp = materials[mat]['Specific_Heat']['qualifier_data'][idx]
                         parameter = materials[mat]['Specific_Heat']['param_data'][idx]
                         f.write('  ' + str(round(temp, 1)) + '\t' + str(round(parameter, 6)) +
                                 '\t!temperature, Specific Heat\n')
-                    f.write('  End c_p Table\n\n')
+                    if materials[mat]['State']['value'] in ['Solid', 'Liquid']:
+                        f.write('  End c_v Table\n\n')
+                    else:
+                        f.write('  End c_p Table\n\n')
                 else:
                     f.write('  ERROR: specific heat must be defined as table, constant or spline!\n\n')
             elif materials[mat]['State']['value'].lower != 'solid':
@@ -747,7 +756,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
             else:
                 pass
 
-            f.write("End Material " + mat + "\n\n")
+            f.write("End Material " + mat.casefold() + "\n\n")
     else:
         f.write("   ! No additional materials imported in the database.\n")
     f.write("! EOF\n")

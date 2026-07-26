@@ -783,7 +783,7 @@ def sortndlabels(ndlabels):
 #                                Test
 # --------------------------------------------------------------------------------------------------------------------
 
-# T, Q, nd, el = tn_solver('../Test_Gui/pure_conduction_01', False)
+# T, Q, nd, el = tn_solver('../Test_Gui/Tes_Material/test_01_solid_conduction.inp', False)
 
 
 

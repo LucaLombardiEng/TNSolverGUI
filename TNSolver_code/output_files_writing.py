@@ -310,7 +310,7 @@ def write_out(fid, spar, nd, el, bc, src, ic, enc, mat):
     fid.write(f'    Label         Type     Node i    Node j     ({u['Q']})\n')
     fid.write(' ---------- ------------- ---------- ---------- ----------\n')
     for e in range(nel):
-        fid.write(f' {el[e].label:10} {el[e].type:13} {el[e].nd1:10} {el[e].nd2:10} {el[e].Q:10g}\n')
+        fid.write(f' {el[e].label:10} {el[e].type:13} {el[e].nd1:10} {el[e].nd2:10} {float(el[e].Q):10g}\n')
 
     nsrc = len(src)
     if nsrc > 0:
@@ -562,7 +562,7 @@ def write_out(fid, spar, nd, el, bc, src, ic, enc, mat):
                     direction = 'in'
 
             fid.write(f'{el[e].nd1:10} - {el[e].label:10} - {el[e].nd2:10}, {nd[el[e].elnd[0]].T:10g}'
-                      f' {nd[el[e].elnd[1]].T:10g} {el[e].Q:10g}    {direction}\n')
+                      f' {nd[el[e].elnd[1]].T:10g} {float(el[e].Q):10g}    {direction}\n')
 
     matIDs = []
     for e in range(nel):

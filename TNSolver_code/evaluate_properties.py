@@ -135,7 +135,7 @@ def betaprop_(mat, T, logfID, prog_report, *text_widget):
     beta_data = mat.betadata
 
     if beta_type == 1:  # Constant
-        beta[:] = beta_data[1]  # Or beta_data[1] if beta_data is a list or array
+        beta[:] = beta_data[0, 1]  # Or beta_data[1] if beta_data is a list or array
     elif beta_type == 2:  # Table - piecewise linear
         beta, msg = interp_func(beta_data[:, 0], beta_data[:, 1], T)
         if msg:
@@ -177,7 +177,7 @@ def kprop_(mat, T, logfID, prog_report, *text_widget):
     # Thermal conductivity
 
     if mat.ktype == 1:  # Constant
-        k[:] = mat.kdata[1]
+        k[:] = mat.kdata[0, 1]
     elif mat.ktype == 2:  # Table - piecewise linear
         k, msg = interp_func(mat.kdata[:, 0], mat.kdata[:, 1], T)
         if msg:
@@ -219,7 +219,7 @@ def rhoCpprop_(mat, T, logfID, prog_report, *text_widget):
 
     # Density
     if mat.rhotype == 1:  # Constant
-        rho[:] = mat.rhodata[1]
+        rho[:] = mat.rhodata[0, 1]
     elif mat.rhotype == 2:  # Table - piecewise linear
         rho, msg = interp_func(mat.rhodata[:, 0], mat.rhodata[:, 1], T)
         if msg:
@@ -235,7 +235,7 @@ def rhoCpprop_(mat, T, logfID, prog_report, *text_widget):
 
     # Specific heat
     if mat.cptype == 1:  # Constant
-        cp[:] = mat.cpdata[1]
+        cp[:] = mat.cpdata[0, 1]
     elif mat.cptype == 2:  # Table - piecewise linear
         cp, msg = interp_func(mat.cpdata[:, 0], mat.cpdata[:, 1], T)
         if msg:
@@ -393,7 +393,7 @@ def betaprop(mat, T):
     beta_data = mat.betadata
 
     if beta_type == 1:  # Constant
-        beta[:] = beta_data[1]  # Or beta_data[1] if beta_data is a list or array
+        beta[:] = beta_data[0, 1]  # Or beta_data[1] if beta_data is a list or array
     elif beta_type == 2:  # Table - piecewise linear
         T = np.maximum(beta_data[0, 0], T)
         T = np.minimum(beta_data[-1, 0], T)
@@ -435,7 +435,7 @@ def kprop(mat, T):
     # Thermal conductivity
 
     if mat.ktype == 1:  # Constant
-        k[:] = mat.kdata[1]
+        k[:] = mat.kdata[0, 1]
     elif mat.ktype == 2:  # Table - piecewise linear
         interpolator = interp1d(mat.kdata[:, 0], mat.kdata[:, 1], kind='linear', fill_value=np.nan)
         k = interpolator(T)
@@ -475,7 +475,7 @@ def rhoCpprop(mat, T):
 
     # Density
     if mat.rhotype == 1:  # Constant
-        rho[:] = mat.rhodata[1]
+        rho[:] = mat.rhodata[0, 1]
     elif mat.rhotype == 2:  # Table - piecewise linear
         interpolator = interp1d(mat.rhodata[:, 0], mat.rhodata[:, 1], kind='linear', fill_value=np.nan)
         rho = interpolator(T)

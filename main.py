@@ -286,7 +286,7 @@ class MainApplication(Frame):
                 with open(filename, 'rb') as f:
                     serialized_data = pickle.load(f)
                 f.close()
-
+                """
                 # retrieve the Solution definition
                 if 'Solution' in serialized_data:
                     self.thermal_network_tab.solution_Frame.setting_from_file(serialized_data["Solution"])
@@ -301,14 +301,15 @@ class MainApplication(Frame):
                         self.thermal_network_tab.slider_Frame.disable()
                 else:
                     self.thermal_network_tab.slider_Frame.disable()
-
+                """
                 # retrieve the Functions definitions
                 if 'Functions' in serialized_data:
-                    self.functions_dict.clear()  # clear the dictionary
-                    self.functions_dict.update(serialized_data['Functions'])  # update the main function dictionary
-                    # self.thermal_network_tab.update_functions()
-                    self.thermal_network_tab.rightFrame.group_functions_by_unit()
-                    self.user_function_tab.refresh_display()  # trigger the update of the fn dictionary in the fn tab
+                    if len(serialized_data['Functions']) > 1:
+                        self.functions_dict.clear()  # clear the dictionary
+                        self.functions_dict.update(serialized_data['Functions'])  # update the main function dictionary
+                        # self.thermal_network_tab.update_functions()
+                        self.thermal_network_tab.rightFrame.group_functions_by_unit()
+                        self.user_function_tab.refresh_display()  # trigger the update of fn dictionary in fn tab
                 else:
                     pass
 
@@ -373,7 +374,9 @@ class MainApplication(Frame):
             self.save()
 
     def save_as_network(self):
-        filename = filedialog.asksaveasfilename(initialdir=gUtility.working_folder_path, title="Select a File",
+        filename = filedialog.asksaveasfilename(initialdir=gUtility.working_folder_path,
+                                                title="Select a File",
+                                                defaultextension=".pkl",
                                                 filetypes=(("Binary file", "*.pkl"), ("all files", "*.*")))
         if filename:  # Check if a filename was actually selected
             # Extract both working directory and filename

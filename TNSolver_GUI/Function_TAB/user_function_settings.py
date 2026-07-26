@@ -176,6 +176,7 @@ class BasicSettings(Frame):
         self._functions_list = list(self.functions_dict.keys())
         self.functions_list_combo['values'] = self._functions_list
         self.functions_list_combo.current(1)
+        # self.functions_list_combo.current(0)
         self.clear_all_data()
         self.data_dict.clear()
 
