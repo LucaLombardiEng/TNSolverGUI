@@ -145,11 +145,22 @@ def QCF(A, F):
         A tuple containing rowsum and symcheck (both 1D numpy arrays).
     """
 
-    # Row sum property
-    rowsum = np.sum(F, axis=1)  # Sum each row (axis=1)
+    # Ensure inputs are numpy arrays
+    A_arr = np.array(A)
+    F_arr = np.array(F)
 
-    # Reciprocity relationship
-    symcheck = np.sum(np.diag(A) @ F - (np.diag(A) @ F).T, axis=1)
+    # Row sum property
+    rowsum = np.sum(F_arr, axis=1)  # Sum each row (axis=1)
+
+    # Reciprocity relationship: A_i * F_ij should equal A_j * F_ji
+    # Construct the matrix product A_i * F_ij
+    matrix_product = np.diag(A_arr) @ F_arr
+
+    # The asymmetry matrix should be close to zero if reciprocity holds
+    asymmetry_matrix = matrix_product - matrix_product.T
+
+    # For each surface (row), find the maximum absolute reciprocity error with any other surface
+    symcheck = np.max(np.abs(asymmetry_matrix), axis=1)
 
     return rowsum, symcheck
 

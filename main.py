@@ -34,6 +34,7 @@ from TNSolver_GUI.Thermal_Network_TAB.dxf_viewer import DXFViewer
 from TNSolver_code.core_solver import tn_solver
 from TNSolver_GUI.Function_TAB.tabular_user_function_main import UserFunctionDefinition
 from TNSolver_GUI.Material_TAB.material_manager_frame_MAIN import MaterialManager
+from TNSolver_GUI.Radiation_Enclosure.Enclosure_TAB import RadiationEnclosureManager
 from TNSolver_code.material_library import matlib
 
 
@@ -87,6 +88,7 @@ class MainApplication(Frame):
                                        'option': None}}
         self.raw_materials = matlib()
         self.project_material_dict = self.convert_to_gui_dict(self.raw_materials)
+        self.enclosure_dict = {}
         self.thermal_network_tab = None
         self.user_function_tab = None
         self.user_material_tab = None
@@ -133,14 +135,20 @@ class MainApplication(Frame):
         pass
 
     def setup_notebook(self):
+        # 1. Instantiate Thermal Network Tab first (it creates bottomFrame / Terminal)
         self.thermal_network_tab = ThermalNetwork(self.tab_ctrl, self.functions_dict, self.project_material_dict)
-        # Create the tabs, passing the data store and update method
+        # Extract terminal logger callback reference
+        logger_callback = self.thermal_network_tab.bottomFrame.write_text
+        # 2. Pass logger_callback to other helper tabs
         self.user_function_tab = UserFunctionDefinition(self.tab_ctrl, self.functions_dict,
                                                         self.update_function_callback)
         self.user_material_tab = MaterialManager(self.tab_ctrl, self.project_material_dict,
                                                  self.update_material_callback, gUtility.path)
-        # self.user_material_tab = Frame(self.tab_ctrl)
-        self.user_enclosure_tab = Frame(self.tab_ctrl)
+        self.user_enclosure_tab = RadiationEnclosureManager(parent=self.tab_ctrl,
+                                                            main_network_ref=self.thermal_network_tab,
+                                                            enclosure_dict=self.enclosure_dict,
+                                                            # Shared dictionary reference
+                                                            logger_cb=self.thermal_network_tab.bottomFrame.write_text)
         self.user_correlation_tab = Frame(self.tab_ctrl)
         self.user_init_cond_tab = Frame(self.tab_ctrl)
         self.converge_tab = Frame(self.tab_ctrl)
@@ -254,6 +262,12 @@ class MainApplication(Frame):
             self.project_material_dict.update(self.convert_to_gui_dict(self.raw_materials))
             self.user_material_tab.reset_database()
 
+            # Enclosure dictionary reset
+            self.enclosure_dict.clear()
+            if hasattr(self.user_enclosure_tab, 'enclosures'):
+                self.user_enclosure_tab.enclosures.clear()
+                self.user_enclosure_tab.active_enclosure = None
+
             # updating the UI
             self.thermal_network_tab.bottomFrame.clear_text()
             self.thermal_network_tab.welcome_message()
@@ -286,22 +300,22 @@ class MainApplication(Frame):
                 with open(filename, 'rb') as f:
                     serialized_data = pickle.load(f)
                 f.close()
-                """
-                # retrieve the Solution definition
-                if 'Solution' in serialized_data:
-                    self.thermal_network_tab.solution_Frame.setting_from_file(serialized_data["Solution"])
-                    if serialized_data['Solution']['analysis_type'] == 'Transient':
+                # retrieve the Solver Setting
+                if 'Solver Setting' in serialized_data:
+                    self.thermal_network_tab.solution_Frame.setting_from_file(serialized_data["Solver Setting"])
+                   
+                    if serialized_data['Solver Setting']['analysis_type'] == 'Transient':
                         self.thermal_network_tab.slider_Frame.enable()
-                        from_ = serialized_data['Solution']['begin_time']
-                        to_ = serialized_data['Solution']['end_time']
-                        steps = serialized_data['Solution']['time_steps']
+                        from_ = serialized_data['Solver Setting']['begin_time']
+                        to_ = serialized_data['Solver Setting']['end_time']
+                        steps = serialized_data['Solver Setting']['time_steps']
                         self.thermal_network_tab.slider_Frame.scale_configure([from_, to_, steps, to_])
 
                     else:
                         self.thermal_network_tab.slider_Frame.disable()
+                   
                 else:
                     self.thermal_network_tab.slider_Frame.disable()
-                """
                 # retrieve the Functions definitions
                 if 'Functions' in serialized_data:
                     if len(serialized_data['Functions']) > 1:
@@ -321,6 +335,30 @@ class MainApplication(Frame):
                     self.user_material_tab.reset_database()
                 else:
                     pass
+
+                # Retrieve Radiation Enclosures (Backward Compatible)
+                self.enclosure_dict.clear()
+                if 'Enclosures' in serialized_data:
+                    self.enclosure_dict.update(serialized_data['Enclosures'])
+                    # If RadiationEnclosureManager has internal state sync:
+                    if hasattr(self, 'user_enclosure_tab'):
+                        # Re-key loaded items into local UI structure
+                        restored_enclosures = {}
+                        for enc_id, enc_data in self.enclosure_dict.items():
+                            surfaces = enc_data.get("surfaces", [])
+                            areas = enc_data.get("areas", [])
+                            eps = enc_data.get("emissivities", enc_data.get("eps", [0.85] * len(surfaces)))
+                            vf_matrix = enc_data.get("view_factors", enc_data.get("F", []))
+
+                            restored_enclosures[enc_id] = {
+                                "surfaces": surfaces,
+                                "areas": areas,
+                                "eps": eps,
+                                "F": np.array(vf_matrix, dtype=float) if len(vf_matrix) > 0 else np.empty((0, 0))
+                            }
+
+                        self.user_enclosure_tab.enclosures = restored_enclosures
+                        self.user_enclosure_tab.sync_from_network()
 
                 # retrieve the nodes and splash on the graphic area
                 serialized_nodes = serialized_data["Nodes"]
@@ -395,17 +433,19 @@ class MainApplication(Frame):
         """ create a dictionary of the thermal network"""
         serialized_nodes = self.thermal_network_tab.get_nodes()
         serialized_elm = self.thermal_network_tab.get_element()
-        serialized_solution = self.thermal_network_tab.solution_Frame.serialize()
+        serialized_solver = self.thermal_network_tab.solution_Frame.serialize()
         serialized_functions = self.functions_dict
         serialized_materials = self.project_material_dict
+        serialized_enclosures = self.enclosure_dict
 
         # Serialize the object to a binary format
 
         data_to_save = {"Nodes": serialized_nodes,
                         "Elements": serialized_elm,
-                        "Solution": serialized_solution,
+                        "Solver Setting": serialized_solver,
                         "Functions": serialized_functions,
-                        "Materials": serialized_materials
+                        "Materials": serialized_materials,
+                        "Enclosures": serialized_enclosures
                         }
         filepath = os.path.join(self.working_folder, self.filename)
 
@@ -446,14 +486,16 @@ class MainApplication(Frame):
                     'The input file is located here: {}\n'.format(filename))
                 serialized_nodes = self.thermal_network_tab.get_nodes()
                 serialized_elm = self.thermal_network_tab.get_element()
-                TNSolver_input_file_gen(filename,
-                                        self.thermal_network_tab.solution_Frame.get_analysis_setup(),
-                                        serialized_nodes,
-                                        serialized_elm,
-                                        self.thermal_network_tab.solution_Frame.initialize_all,
-                                        self.functions_dict,
-                                        self.project_material_dict
-                                        )
+                TNSolver_input_file_gen(
+                    filename,
+                    self.thermal_network_tab.solution_Frame.get_analysis_setup(),
+                    serialized_nodes,
+                    serialized_elm,
+                    self.thermal_network_tab.solution_Frame.initialize_all,
+                    self.functions_dict,
+                    self.project_material_dict,
+                    self.enclosure_dict
+                )
             else:
                 self.thermal_network_tab.bottomFrame.write_text(
                     'ERROR: The Working folder is not defined.\n')

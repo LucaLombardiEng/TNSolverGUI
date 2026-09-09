@@ -1,6 +1,6 @@
 """
     Thermal Solver Network - Property editor
-    This class manages the editing of teh properties of nodes and elements
+    This class manages the editing of the properties of nodes and elements
 
     Luca Lombardi
     Rev 0: First Draft
@@ -113,8 +113,8 @@ class PropertyEditor(Frame):
                                                  h=selected_box[3])
                     self._change_node_type.focus()
                     self._change_node_type.bind("<FocusOut>", self.box_focus_out)
-                elif selected_iid == '3':
-                    # comment entry
+                elif selected_iid in ['3', '16']:
+                    # comment entry or enclosure ID entry
                     entry_box = Entry(self._frame_prop_edit, width=selected_box[2])
                     entry_box.place(x=selected_box[0],
                                     y=selected_box[1] + 10,
@@ -294,6 +294,8 @@ class PropertyEditor(Frame):
                                                       *power_unit[0],
                                                       command=lambda m: self._set_unit(m, power_unit,
                                                                                        selected_iid))
+                    else:
+                        proceed = False
                     if proceed:
                         # remember to add the pady or padx in case of modifications in the placement of the
                         # _frame_prop_edit frame. place do not consider this from the pack method.
@@ -429,7 +431,7 @@ class PropertyEditor(Frame):
                                                   command=lambda m: self._set_unit(m, htc_unit,
                                                                                    selected_iid))
                 else:
-                    pass
+                    return
 
                 # remember to add the pady or padx in case of modifications in the placement of the
                 # _frame_prop_edit frame. place do not consider this from the pack method.
@@ -440,7 +442,7 @@ class PropertyEditor(Frame):
                 self.unit_option.focus()
                 self.unit_option.bind("<FocusOut>", self.box_focus_out)
         else:
-            pass
+            return
 
     def on_enter_press(self, event, selected_iid, selected_column):
         if selected_column != -1:
@@ -575,7 +577,7 @@ class PropertyEditor(Frame):
                     return True
                 elif not int(exponent):
                     return False
-            elif len(P) == 1 and (P[0] == '-' or P[0] == '.' or P[0] == '+'):
+            elif len(P) == 1 and (P[0] in ['-', '.' , '+']):
                 return True
             elif float(P) == 0:
                 return True
@@ -801,6 +803,11 @@ class PropertyEditor(Frame):
         if self.property_tree.get_children():
             self.property_tree.delete(*self.property_tree.get_children())
 
+        # Fallback to "None" string if enclosure_id is empty or unset
+        enc_id = getattr(self.dummy_node, 'node_enclosure_id', "None")
+        if not enc_id:
+            enc_id = "None"
+
         self.property_tree.insert(parent="", index=END, iid=0, text="Node ID", values=[self.dummy_node.node_ID, ""],
                                   tags=('odd row',))
         self.property_tree.insert(parent="", index=END, iid=1, text="Node type", values=[self.dummy_node.node_type, ""],
@@ -809,80 +816,82 @@ class PropertyEditor(Frame):
                                   tags=('odd row',))
         self.property_tree.insert(parent="", index=END, iid=3, text="comment",
                                   values=[self.dummy_node.node_comment, ""], tags=('even row',))
+        self.property_tree.insert(parent="", index=END, iid=16, text="Enclosure ID",
+                                  values=[enc_id, ""], tags=('odd row', 'enabled'))
         """ Differentiate the treeview on the base of the node type"""
         if self.dummy_node.node_type == "Internal Node":
             self.property_tree.insert(parent="", index=END, iid=4, text="material",
-                                      values=[self.dummy_node.node_material, ""], tags=('odd row',))
+                                      values=[self.dummy_node.node_material, ""], tags=('even row',))
             self.property_tree.insert(parent="", index=END, iid=5, text="volume", values=self.dummy_node.node_volume,
-                                      tags=('even row', 'enabled'))
+                                      tags=('odd row', 'enabled'))
             if (self.dummy_node.node_material == 'user defined') or (self.dummy_node.node_material == ''):
                 tag_state = 'enabled'
             else:
                 tag_state = 'disabled'
             self.property_tree.insert(parent="", index=END, iid=6, text="density",
-                                      values=self.dummy_node.node_density, tags=('odd row', tag_state))
+                                      values=self.dummy_node.node_density, tags=('even row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=7, text="specific heat",
-                                      values=self.dummy_node.node_Cp, tags=('even row', tag_state))
+                                      values=self.dummy_node.node_Cp, tags=('odd row', tag_state))
         elif self.dummy_node.node_type == "Temperature":
             self.property_tree.set(1, "units", self.dummy_node.node_fn_time)
             self.property_tree.insert(parent="", index=END, iid=9, text="temperature",
-                                      values=self.dummy_node.node_temperature, tags=('odd row', 'enabled'))
+                                      values=self.dummy_node.node_temperature, tags=('even row', 'enabled'))
         elif self.dummy_node.node_type == "Heat Flux":
             self.property_tree.insert(parent="", index=END, iid=8, text="area", values=self.dummy_node.node_area,
-                                      tags=('odd row', 'enabled'))
+                                      tags=('even row', 'enabled'))
             self.property_tree.insert(parent="", index=END, iid=10, text="heat flux",
-                                      values=self.dummy_node.node_heat_flux, tags=('even row', 'enabled'))
+                                      values=self.dummy_node.node_heat_flux, tags=('odd row', 'enabled'))
         elif self.dummy_node.node_type == "Volumetric heat source":
             self.property_tree.insert(parent="", index=END, iid=4, text="material",
-                                      values=[self.dummy_node.node_material, ""], tags=('odd row',))
+                                      values=[self.dummy_node.node_material, ""], tags=('even row',))
             self.property_tree.insert(parent="", index=END, iid=5, text="volume", values=self.dummy_node.node_volume,
-                                      tags=('even row', 'enabled'))
+                                      tags=('odd row', 'enabled'))
             if (self.dummy_node.node_material == 'user defined') or (self.dummy_node.node_material == ''):
                 tag_state = 'enabled'
             else:
                 tag_state = 'disabled'
             self.property_tree.insert(parent="", index=END, iid=6, text="density",
-                                      values=self.dummy_node.node_density, tags=('odd row', tag_state))
+                                      values=self.dummy_node.node_density, tags=('even row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=7, text="specific heat",
-                                      values=self.dummy_node.node_Cp, tags=('even row', tag_state))
+                                      values=self.dummy_node.node_Cp, tags=('odd row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=11, text="volumetric power",
-                                      values=self.dummy_node.node_volumetric_power, tags=('odd row', 'enabled'))
+                                      values=self.dummy_node.node_volumetric_power, tags=('even row', 'enabled'))
         elif self.dummy_node.node_type == "Total Heat source":
             self.property_tree.insert(parent="", index=END, iid=4, text="material",
-                                      values=[self.dummy_node.node_material, ""], tags=('odd row',))
+                                      values=[self.dummy_node.node_material, ""], tags=('even row',))
             self.property_tree.insert(parent="", index=END, iid=5, text="volume", values=self.dummy_node.node_volume,
-                                      tags=('even row', 'enabled'))
+                                      tags=('odd row', 'enabled'))
             if (self.dummy_node.node_material == 'user defined') or (self.dummy_node.node_material == ''):
                 tag_state = 'enabled'
             else:
                 tag_state = 'disabled'
             self.property_tree.insert(parent="", index=END, iid=6, text="density",
-                                      values=self.dummy_node.node_density, tags=('odd row', tag_state))
+                                      values=self.dummy_node.node_density, tags=('even row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=7, text="specific heat",
-                                      values=self.dummy_node.node_Cp, tags=('even row', tag_state))
+                                      values=self.dummy_node.node_Cp, tags=('odd row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=12, text="power", values=self.dummy_node.node_power,
-                                      tags=('odd row', 'enabled'))
+                                      tags=('even row', 'enabled'))
         elif self.dummy_node.node_type == "Thermostatic heat source":
             self.property_tree.insert(parent="", index=END, iid=4, text="material",
-                                      values=[self.dummy_node.node_material, ""], tags=('odd row',))
+                                      values=[self.dummy_node.node_material, ""], tags=('even row',))
             self.property_tree.insert(parent="", index=END, iid=5, text="volume", values=self.dummy_node.node_volume,
-                                      tags=('even row', 'enabled'))
+                                      tags=('odd row', 'enabled'))
             if (self.dummy_node.node_material == 'user defined') or (self.dummy_node.node_material == ''):
                 tag_state = 'enabled'
             else:
                 tag_state = 'disabled'
             self.property_tree.insert(parent="", index=END, iid=6, text="density",
-                                      values=self.dummy_node.node_density, tags=('odd row', tag_state))
+                                      values=self.dummy_node.node_density, tags=('even row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=7, text="specific heat",
-                                      values=self.dummy_node.node_Cp, tags=('even row', tag_state))
+                                      values=self.dummy_node.node_Cp, tags=('odd row', tag_state))
             self.property_tree.insert(parent="", index=END, iid=12, text="power", values=self.dummy_node.node_power,
-                                      tags=('odd row', 'enabled'))
+                                      tags=('even row', 'enabled'))
             self.property_tree.insert(parent="", index=END, iid=13, text="thermostatic node",
-                                      values=[self.dummy_node.node_thermostatic_node, ''], tags=('even row', 'enabled'))
+                                      values=[self.dummy_node.node_thermostatic_node, ''], tags=('odd row', 'enabled'))
             self.property_tree.insert(parent="", index=END, iid=14, text="Temperature ON",
-                                      values=self.dummy_node.node_temp_on, tags=('odd row', 'enabled'))
+                                      values=self.dummy_node.node_temp_on, tags=('even row', 'enabled'))
             self.property_tree.insert(parent="", index=END, iid=15, text="Temperature OFF",
-                                      values=self.dummy_node.node_temp_off, tags=('even row', 'enabled'))
+                                      values=self.dummy_node.node_temp_off, tags=('odd row', 'enabled'))
         else:
             pass
         """ apply banded rows """
@@ -896,6 +905,7 @@ class PropertyEditor(Frame):
         self.dummy_node.node_type = self.property_tree.item(1).get("values")[0]
         self.dummy_node.node_label = self.property_tree.item(2).get("values")[0]
         self.dummy_node.node_comment = self.property_tree.item(3).get("values")[0]
+        self.dummy_node.node_enclosure_id = self.property_tree.item(16).get("values")[0]
         if self.dummy_node.node_type == "Internal Node":
             self.dummy_node.node_material = self.property_tree.item(4).get("values")[0]
             if (self.dummy_node.node_material == 'user defined') or (self.dummy_node.node_material == ''):

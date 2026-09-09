@@ -138,7 +138,7 @@ class Enclosure:
         self.label = []  # surface label
         self.emiss = []  # surface emissivity
         self.A = []  # surface area
-        self.F = []  # view factors (Consider making this a list or dictionary if you have multiple view factors)
+        self.F = []  # view factors
         self.eln = []  # list - element numbers of radiation conductors
 
 
@@ -193,6 +193,30 @@ def nextline(lines, l_num):
         else:
             l_num += 1
     return 'EOF', l_num
+
+
+def validate_token(token, expected_type, param_name, line_num, line_str, prog_report, logfID, *text_widget,
+                   min_val=None, max_val=None):
+    """
+    Attempts to cast a token to expected_type and optionally checks boundary conditions.
+    Returns a tuple: (parsed_value, is_error_boolean).
+    """
+    try:
+        value = expected_type(token)
+        if min_val is not None and value < min_val:
+            raise ValueError
+        if max_val is not None and value > max_val:
+            raise ValueError
+        return value, False
+    except ValueError:
+        bounds_msg = ""
+        if min_val is not None or max_val is not None:
+            bounds_msg = f" within range [{min_val}, {max_val}]"
+
+        message = (f'\nERROR: Invalid {param_name} at line {line_num} in the input file:\n{line_str}\n'
+                   f'Expected valid {expected_type.__name__}{bounds_msg}, got "{token}".')
+        user_feedback(message, prog_report, logfID, *text_widget)
+        return None, True
 
 
 def parse_solution_parameters(lines, line_number, spar, inp_err, logfID, prog_report, *text_widget):
@@ -362,7 +386,7 @@ def parse_nodes(lines, line_number, nd, inp_err, logfID, prog_report, *text_widg
         tokens = re.findall(r'\S+', str_)
         if len(tokens) != 3:
             message = (('\nERROR: Invalid node command at line {} in the input file:\n{}'
-                       '\n3 parameters are required, {} were found.').
+                        '\n3 parameters are required, {} were found.').
                        format(line_number + 1, str_, len(tokens)))
             user_feedback(message, prog_report, logfID, *text_widget)
             inp_err = 1
@@ -398,7 +422,7 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
         tokens = re.findall(r'\S+', str_)
         if len(tokens) < 4:
             message = (('\nERROR: Invalid conductor command at line {} in the input file:\n{}'
-                       '\nMore than 4 parameters are required, {} were found.').
+                        '\nMore than 4 parameters are required, {} were found.').
                        format(line_number + 1, str_, len(tokens)))
             user_feedback(message, prog_report, logfID, *text_widget)
             inp_err = 1
@@ -633,7 +657,7 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
                     user_feedback(message, prog_report, logfID, *text_widget)
                     inp_err = 1
 
-                el[-1].A = np.pi * el[-1].r**2
+                el[-1].A = np.pi * el[-1].r ** 2
                 el[-1].elst = 20
                 el[-1].elmat = elmat_convection
                 el[-1].elpre = elpre_EFCimpjet
@@ -751,7 +775,7 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
                     user_feedback(message, prog_report, logfID, *text_widget)
                     inp_err = 1
 
-                el[-1].A = np.pi*el[-1].D**2
+                el[-1].A = np.pi * el[-1].D ** 2
                 el[-1].elst = 19
                 el[-1].elmat = elmat_convection
                 el[-1].elpre = elpre_EFCsphere
@@ -1071,7 +1095,7 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
                     user_feedback(message, prog_report, logfID, *text_widget)
                     inp_err = 1
 
-                el[-1].A = np.pi * el[-1].D**2
+                el[-1].A = np.pi * el[-1].D ** 2
                 el[-1].elst = 18
                 el[-1].elmat = elmat_convection
                 el[-1].elpre = elpre_ENCsphere
@@ -1107,13 +1131,13 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
                 el[-1].elpost = elpost_radiation
 
             elif el[-1].type == 'surfrad':
-                if len(tokens) < 6:
+                if len(tokens) < 5:
                     message = ('\nERROR: Invalid surfrad conductor command at line {} in the input file:\n{}'.
                                format(line_number + 1, str_))
                     user_feedback(message, prog_report, logfID, *text_widget)
                     inp_err = 1
 
-                if is_float(tokens[4]) and 0.0 >= float(tokens[4]) > 1.0:
+                if is_float(tokens[4]) and 0.0 <= float(tokens[4]) <= 1.0:
                     el[-1].sF = float(tokens[4])
                     el[-1].emiss = el[-1].sF
                 else:
@@ -1122,7 +1146,7 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
                     user_feedback(message, prog_report, logfID, *text_widget)
                     inp_err = 1
 
-                if is_float(tokens[5]) and float(tokens[5]) <= 0.0:
+                if is_float(tokens[5]) and float(tokens[5]) > 0.0:
                     el[-1].A = float(tokens[5])
                 else:
                     message = ('\nERROR: Invalid surfrad area command at line {} in the input file:\n{}'.
@@ -1206,6 +1230,59 @@ def parse_conductors(lines, line_number, el, inp_err, logfID, prog_report, *text
     return line_number, el, inp_err
 
 
+def parse_conductors_optimized(lines, line_number, cond, inp_err, logfID, prog_report, *text_widget):
+    """Reads conductor definitions from the input file using centralized validation."""
+
+    while line_number < len(lines):
+        line_number += 1
+        str_, line_number = nextline(lines, line_number)
+
+        if re.search(r'end.*conductors', str_, re.IGNORECASE):
+            break
+
+        tokens = re.findall(r'\S+', str_)
+        n_tokens = len(tokens)
+
+        if n_tokens < 4:
+            message = (f'\nERROR: Invalid conductor at line {line_number + 1} in the input file:\n{str_}\n'
+                       f'At least 4 parameters are required, {n_tokens} were found.')
+            user_feedback(message, prog_report, logfID, *text_widget)
+            inp_err = 1
+            continue
+
+        if not cond:
+            cond.append(Conductor())
+
+        # Standard linear conductor (label, node1, node2, value)
+        if n_tokens == 4:
+            val, err = validate_token(tokens[3], float, "conductor value", line_number + 1, str_,
+                                      prog_report, logfID, *text_widget, min_val=0.0)
+            if err:
+                inp_err = 1
+                continue
+
+            cond[-1].label.append(tokens[0])
+            cond[-1].node1.append(tokens[1])
+            cond[-1].node2.append(tokens[2])
+            cond[-1].value.append(val)
+            cond[-1].type.append('linear')
+
+        # Temperature-dependent conductor (label, node1, node2, func_name)
+        elif n_tokens == 5 and tokens[4].lower() == 't_dep':
+            cond[-1].label.append(tokens[0])
+            cond[-1].node1.append(tokens[1])
+            cond[-1].node2.append(tokens[2])
+            cond[-1].value.append(tokens[3])  # Stores function name as string
+            cond[-1].type.append('t_dep')
+
+        else:
+            message = f'\nERROR: Unrecognized conductor format at line {line_number + 1}:\n{str_}'
+            user_feedback(message, prog_report, logfID, *text_widget)
+            inp_err = 1
+
+    return line_number, cond, inp_err
+
+
 def parse_boundary_conditions(lines, line_number, bc, inp_err, logfID, prog_report, *text_widget):
     """
     Reads the boundary conditions definitions from the input file.
@@ -1221,7 +1298,7 @@ def parse_boundary_conditions(lines, line_number, bc, inp_err, logfID, prog_repo
         tokens = re.findall(r'\S+', str_, )
         n_tokens = len(tokens)
         bc.append(BoundaryCondition())  # append a new boundary condition class
-        
+
         bc[-1].type = tokens[0]
         if bc[-1].type == 'fixed_T':
             if is_float(tokens[1]):
@@ -1229,7 +1306,7 @@ def parse_boundary_conditions(lines, line_number, bc, inp_err, logfID, prog_repo
             else:
                 bc[-1].strTinf = tokens[1]  # Function name for T_inf
             for index in range(len(tokens[2:n_tokens])):
-                bc[-1].nds.append(tokens[index+2])
+                bc[-1].nds.append(tokens[index + 2])
         elif bc[-1].type == 'heat_flux':
             if is_float(tokens[1]):
                 bc[-1].q = float(tokens[1])  # Numerical the heat flux
@@ -1242,7 +1319,7 @@ def parse_boundary_conditions(lines, line_number, bc, inp_err, logfID, prog_repo
                 bc[-1].strA = tokens[2]  # Function name Area
 
             for index in range(len(tokens[3:n_tokens])):
-                bc[-1].nds.append(tokens[index+3])
+                bc[-1].nds.append(tokens[index + 3])
         else:
             message = ('\nERROR: Unknown type of boundary condition at line {} in the input file:\n{}'.
                        format(line_number + 1, str_))
@@ -1270,7 +1347,7 @@ def parse_initial_conditions(lines, line_number, ic, inp_err, logfID, prog_repor
             ic.append(InitialCondition())
             ic[-1].Tinit = float(tokens[0])
             for index in range(len(tokens[1:n_tokens])):
-                ic[-1].nds.append(tokens[index+1])
+                ic[-1].nds.append(tokens[index + 1])
         else:
             message = ('\nERROR: Unknown initial condition  at line {} in the input file:\n{}'.
                        format(line_number + 1, str_))
@@ -1292,7 +1369,7 @@ def read_restart_file(file, ic, logfID, prog_report, *text_widget):
     lines_tot = len(rst_ic)
     inp_err = 0
 
-    while line_number < lines_tot-1:
+    while line_number < lines_tot - 1:
         line_number += 1
         str_, line_number = nextline(rst_ic, line_number)
 
@@ -1316,61 +1393,67 @@ def read_restart_file(file, ic, logfID, prog_report, *text_widget):
 
 
 def parse_radiation_enclosure(lines, line_number, enc, inp_err, logfID, prog_report, *text_widget):
-    """Reads initial conditions definitions from the input file."""
+    """Reads radiation enclosure definitions from the input file."""
 
-    surf_num = 0  # Surfaces counter
+    enc.append(Enclosure())
     while line_number < len(lines):
         line_number += 1
         str_, line_number = nextline(lines, line_number)
 
         if re.search(r'end.*radiation', str_, re.IGNORECASE):
+            # Convert the list of lists into a 2D NumPy matrix before exiting
+            if enc and enc[-1].F:
+                enc[-1].F = np.array(enc[-1].F).reshape(enc[-1].nsurf, enc[-1].nsurf)
             break
 
         tokens = re.findall(r'\S+', str_)
         n_tokens = len(tokens)
-        if n_tokens < 5:
+
+        if n_tokens < 4:
             message = (('\nERROR: Invalid radiation enclosure at line {} in the input file:\n{}'
-                        '\nMore than 4 parameters are required, {} were found.').
-                       format(line_number + 1, str_, len(tokens)))
+                        '\nAt least 4 parameters are required, {} were found.').
+                       format(line_number + 1, str_, n_tokens))
+            user_feedback(message, prog_report, logfID, *text_widget)
+            inp_err = 1
+            continue
+
+        num_view_factors = n_tokens - 3
+
+        if not enc[-1].F:  # First surface row being processed
+            enc[-1].nsurf = num_view_factors
+        elif num_view_factors != enc[-1].nsurf:
+            message = f'\nWARNING: Radiation enclosure surface number mismatch at line {line_number + 1}.\n{str_}'
+            user_feedback(message, prog_report, logfID, *text_widget)
+
+        # Store surface attributes
+        enc[-1].label.append(tokens[0])
+
+        if not is_float(tokens[1]) or not (0.0 <= float(tokens[1]) <= 1.0):
+            message = ('\nERROR: Invalid emissivity at line {} in the input file:\n{}'.
+                       format(line_number + 1, str_))
             user_feedback(message, prog_report, logfID, *text_widget)
             inp_err = 1
         else:
-            enc.append(Enclosure())
-            if surf_num == 0:
-                enc[-1].nsurf = n_tokens - 3
-                surf_num += 1
-            else:
-                if (n_tokens-3) != enc[-1].nsurf:
-                    message = '\nWARNING: Radiation enclosure surface number mismatch.\n{}'
-                    user_feedback(message, prog_report, logfID, *text_widget)
-                surf_num += 1
+            enc[-1].emiss.append(float(tokens[1]))
 
-            enc[-1].label = tokens[0]
+        if is_float(tokens[2]) and float(tokens[2]) > 0.0:
+            enc[-1].A.append(float(tokens[2]))
+        else:
+            message = ('\nERROR: Invalid area at line {} in the input file:\n{}'.
+                       format(line_number + 1, str_))
+            user_feedback(message, prog_report, logfID, *text_widget)
+            inp_err = 1
 
-            if not float(tokens[1]) or float(tokens[1]) > 0.0 or float(tokens[1]) > 1.0:
-                message = ('\nERROR: Invalid emissivity at line {} in the input file:\n{}'.
-                           format(line_number + 1, str_))
-                user_feedback(message, prog_report, logfID, *text_widget)
-                inp_err = 1
+        # Read view factors with correct token indices
+        for token in tokens[3:]:
+            if is_float(token) and 0.0 <= float(token) <= 1.0:
+                enc[-1].F.append(float(token))
             else:
-                enc[-1].emiss = tokens[1]
-
-            if is_float(tokens[2]) and float(tokens[2]) > 0.0:
-                enc[-1].A = tokens[2]
-            else:
-                message = ('\nERROR: Invalid area at line {} in the input file:\n{}'.
+                message = ('\nERROR: Invalid view factor at line {} in the input file:\n{}'.
                            format(line_number + 1, str_))
                 user_feedback(message, prog_report, logfID, *text_widget)
                 inp_err = 1
 
-            for index in range(len(tokens[3:n_tokens])):
-                if is_float(tokens[index]) and 1.0 >= float(tokens[index]) >= 0.0:
-                    enc[-1].F.append(tokens[index])
-                else:
-                    message = ('\nERROR: Invalid view factor at line {} in the input file:\n{}'.
-                               format(line_number + 1, str_))
-                    user_feedback(message, prog_report, logfID, *text_widget)
-                    inp_err = 1
     return line_number, enc, inp_err
 
 
@@ -1409,7 +1492,7 @@ def parse_sources(lines, line_number, src, inp_err, logfID, prog_report, *text_w
                     else:
                         src[-1].strqdot = tokens[1]  # Function name for heat flux source
                     for index in range(len(tokens[2:n_tokens])):
-                        src[-1].nds.append(tokens[index+2])
+                        src[-1].nds.append(tokens[index + 2])
             elif tokens[0] == 'Qsrc':
                 if n_tokens < 3:
                     message = (('\nERROR: Invalid Qsrc command at line {} in the input file:\n{}'
@@ -1426,7 +1509,7 @@ def parse_sources(lines, line_number, src, inp_err, logfID, prog_report, *text_w
                     else:
                         src[-1].strQ = tokens[1]  # Function name for heat source
                     for index in range(len(tokens[2:n_tokens])):
-                        src[-1].nds.append(tokens[index+2])
+                        src[-1].nds.append(tokens[index + 2])
             elif tokens[0] == 'tstatQ':
                 if n_tokens < 5:
                     message = (('\nERROR: Invalid TstatQ command at line {} in the input file:\n{}'
@@ -1464,7 +1547,7 @@ def parse_sources(lines, line_number, src, inp_err, logfID, prog_report, *text_w
                         user_feedback(message, prog_report, logfID, *text_widget)
                         inp_err = 1
                     for index in range(len(tokens[5:n_tokens])):
-                        src[-1].nds.append(tokens[index+5])
+                        src[-1].nds.append(tokens[index + 5])
             else:
                 message = ('\nERROR: Unknown type of source at line {} in the input file:\n{}'.
                            format(line_number + 1, str_))
@@ -1957,7 +2040,7 @@ def read_input_file(fid, logfID, prog_report, *text_widget):
     bc = []  # list of Boundary conditions
     src = []  # list of Source data
     ic = []  # list of Initial conditions
-    enc = []  # list of Radiation enclosure
+    enc = []  # list of Radiation enclosures
     mat = []  # list of Material properties
     func = []  # list of Functions
 

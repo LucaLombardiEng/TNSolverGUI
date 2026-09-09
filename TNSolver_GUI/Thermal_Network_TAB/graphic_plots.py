@@ -103,13 +103,15 @@ class FunctionPlotter(Frame):
 
     def add_vertical_line(self, x_value):
         x_value = float(x_value)
-        # Remove the old line if it exists
-        if self.vertical_line:
-            self.vertical_line.remove()
-            self.vertical_line = None
 
-        # Add the new line
-        self.vertical_line = self.plot.axvline(x=x_value, color='red', linestyle='--')
+        # Check if the line exists AND is still actively attached to the plot
+        if getattr(self, 'vertical_line', None) and self.vertical_line in self.plot.lines:
+            # Just move the existing line (extremely fast)
+            self.vertical_line.set_xdata([x_value, x_value])
+        else:
+            # Create the line for the first time (or if the plot was cleared)
+            self.vertical_line = self.plot.axvline(x=x_value, color='red', linestyle='--')
+
         self.canvas.draw_idle()
 
 # -------------------------------------------------------------------------------------------------------------------

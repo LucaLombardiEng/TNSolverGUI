@@ -248,45 +248,45 @@ class SolverSetting(Frame):
         return self.analysis
 
     def serialize(self):
-        serialized_solution = {"title": self.analysis.title,
-                               "analysis_type": self.analysis.type,
-                               "unit": self.analysis.units,
-                               "temperature_unit": self.analysis.Tunits,
-                               "convergence": self.analysis.convergence,
-                               "iterations": self.analysis.iterations,
-                               "initial_temperature": self.analysis.initial_temperature,
-                               "begin_time": self.analysis.begin_time,
-                               "end_time": self.analysis.end_time,
-                               "time_steps": self.analysis.time_steps,
-                               "print_intervals": self.analysis.print_intervals}
-        return serialized_solution
+        serialized_solver = {"title": self.analysis.title,
+                             "analysis_type": self.analysis.type,
+                             "unit": self.analysis.units,
+                             "temperature_unit": self.analysis.Tunits,
+                             "convergence": self.analysis.convergence,
+                             "iterations": self.analysis.iterations,
+                             "initial_temperature": self.analysis.initial_temperature,
+                             "begin_time": self.analysis.begin_time,
+                             "end_time": self.analysis.end_time,
+                             "time_steps": self.analysis.time_steps,
+                             "print_intervals": self.analysis.print_intervals}
+        return serialized_solver
 
-    def setting_from_file(self, solution_parameter):
+    def setting_from_file(self, solver_settings):
         for entry in self.entry_list:  # temporary enabling of the entries
             entry.config(state='normal')
 
         self.title_entry.delete(0, END)
-        self.title_entry.insert(0, solution_parameter['title'])
-        self.combo_analysis.set(solution_parameter['analysis_type'])
-        self.combo_unit.set(solution_parameter['unit'])
-        self.combo_Tunit.set(solution_parameter['temperature_unit'])
+        self.title_entry.insert(0, solver_settings['title'])
+        self.combo_analysis.set(solver_settings['analysis_type'])
+        self.combo_unit.set(solver_settings['unit'])
+        self.combo_Tunit.set(solver_settings['temperature_unit'])
         self.convergence_entry.delete(0, END)
-        self.convergence_entry.insert(0, solution_parameter['convergence'])
+        self.convergence_entry.insert(0, solver_settings['convergence'])
         self.iterations_entry.delete(0, END)
-        self.iterations_entry.insert(0, solution_parameter['iterations'])
+        self.iterations_entry.insert(0, solver_settings['iterations'])
         self.init_temp_entry.delete(0, END)
-        if 'initial_temperature' in solution_parameter:
-            self.init_temp_entry.insert(0, solution_parameter['initial_temperature'])
+        if 'initial_temperature' in solver_settings:
+            self.init_temp_entry.insert(0, solver_settings['initial_temperature'])
         else:
             self.init_temp_entry.insert(0, 20.0)
         self.start_time_entry.delete(0, END)
-        self.start_time_entry.insert(0, solution_parameter['begin_time'])
+        self.start_time_entry.insert(0, solver_settings['begin_time'])
         self.end_time_entry.delete(0, END)
-        self.end_time_entry.insert(1, solution_parameter['end_time'])
+        self.end_time_entry.insert(1, solver_settings['end_time'])
         self.time_steps_entry.delete(0, END)
-        self.time_steps_entry.insert(0, solution_parameter['time_steps'])
+        self.time_steps_entry.insert(0, solver_settings['time_steps'])
         self.print_intervals_entry.delete(0, END)
-        self.print_intervals_entry.insert(0, solution_parameter['print_intervals'])
+        self.print_intervals_entry.insert(0, solver_settings['print_intervals'])
         self.analysis_modified(1)
         self.update_analysis_info(1)
 

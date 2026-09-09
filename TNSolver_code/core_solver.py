@@ -244,7 +244,8 @@ def tnsdriver(fid, T, Q, spar, nd, el, bc, src, func, mat, logfID, prog_report, 
                 bc[bcn].Tinf = evalfunc(func[bc[bcn].fncTinf], time)
                 for j in range(len(bc[bcn].nd)):
                     index = int(bc[bcn].nd[j])
-                    eqn = nd[index - 1].eqn  # Corrected indexing
+                    # eqn = nd[index - 1].eqn  # Corrected indexing
+                    eqn = nd[index].eqn  # Corrected indexing
                     nd[eqn].T = bc[bcn].Tinf + spar.Toff
                     T[eqn] = nd[eqn].T
 
@@ -252,7 +253,7 @@ def tnsdriver(fid, T, Q, spar, nd, el, bc, src, func, mat, logfID, prog_report, 
                 bc[bcn].q = evalfunc(func[bc[bcn].fncq], time)
 
             if bc[bcn].fncq is not None:
-                bc[bcn].A = evalfunc(func[bc[bcn].fncq], time)
+                bc[bcn].A = evalfunc(func[bc[bcn].fncA], time)
 
         # Nonlinear loop
         converged = False
@@ -384,7 +385,8 @@ def tnsdriver(fid, T, Q, spar, nd, el, bc, src, func, mat, logfID, prog_report, 
             for j in range(len(src[i].nd)):
                 if src[i].ntype is not None:  # Check if ntype exists
                     if src[i].ntype == 1:
-                        src[i].Qtot += src[i].qdot * nd[src[i].nd[j] - 1].vol  # Corrected indexing
+                        # src[i].Qtot += src[i].qdot * nd[src[i].nd[j] - 1].vol  # Corrected indexing
+                        src[i].Qtot += src[i].qdot * nd[src[i].nd[j]].vol  # Corrected indexing
                     elif src[i].ntype == 2 or src[i].ntype == 3:
                         src[i].Qtot += src[i].Q
                     else:
@@ -485,17 +487,47 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
 
     if nenc > 0:
         for i in range(nenc):
+            """
             # Run a quality check on the supplied view factor matrix
             row_sum, sym_check = QCF(enc[i].A, enc[i].F)
             for n in range(len(row_sum)):
                 if abs(1.0 - row_sum[n]) > 100.0 * np.finfo(float).eps:  # Use np.finfo for machine epsilon
                     message = ('\nWARNING: Row sum = {}, for surface {} in enclosure {}, is not equal to 1.0.\n'.
-                               format(row_sum[n], enc[i]["label"][n], i + 1))
+                               format(row_sum[n], enc[i].label[n], i + 1))
                     user_feedback(message, prog_report, logfID, *text_widget)
             for n in range(len(sym_check)):
                 if abs(sym_check[n]) > 100.0 * np.finfo(float).eps:
                     message = ('\nWARNING: Symmetry check = {}, for surface {} in enclosure {}, is not equal to 0.0.\n'.
-                               format(sym_check[n], enc[i]["label"][n], i + 1))
+                               format(sym_check[n], enc[i].label[n], i + 1))
+                    user_feedback(message, prog_report, logfID, *text_widget)
+            """
+            print(f"DEBUG: Enclosure {i + 1} nsurf = {enc[i].nsurf}")
+            print(f"DEBUG: Enclosure {i + 1} F matrix shape = {np.array(enc[i].F).shape}")
+            print(f"DEBUG: Enclosure {i + 1} F matrix contents = {enc[i].F}")
+            # Convert A and F to numpy arrays for matrix math
+            A_arr = np.array(enc[i].A)
+            F_arr = np.array(enc[i].F)
+
+            # 1. Row Sum Quality Check
+            row_sums = np.sum(F_arr, axis=1)
+            for n in range(enc[i].nsurf):
+                if abs(1.0 - row_sums[n]) > 100.0 * np.finfo(float).eps:
+                    message = ('\nWARNING: Row sum = {:.4f}, for surface {} in enclosure {}, is not equal to 1.0.\n'.
+                               format(row_sums[n], enc[i].label[n], i + 1))
+                    user_feedback(message, prog_report, logfID, *text_widget)
+
+            # 2. Symmetry (Reciprocity) Quality Check
+            # Computes matrix of A_i * F_ij - A_j * F_ji
+            recip_matrix = A_arr[:, None] * F_arr - A_arr * F_arr.T
+
+            # Find the maximum reciprocity error for each surface
+            sym_errors = np.max(np.abs(recip_matrix), axis=1)
+
+            for n in range(enc[i].nsurf):
+                if sym_errors[n] > 100.0 * np.finfo(float).eps:
+                    message = (
+                        '\nWARNING: Symmetry check max error = {:.4e}, for surface {} in enclosure {}, is not equal to 0.0.\n'.
+                        format(sym_errors[n], enc[i].label[n], i + 1))
                     user_feedback(message, prog_report, logfID, *text_widget)
             # Calculate the function-F values for this view factor matrix
             sF = functionF(enc[i].emiss, enc[i].F)
@@ -507,17 +539,17 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
                     nel += 1
                     m += 1
                     el.append(Element())
-                    el.label = f"{enc[i].label[j]}-{enc[i].label[k]}"
-                    el.type = 'radiation'
-                    el.nd1 = enc[i].label[j]
-                    el.nd2 = enc[i].label[k]
-                    el.sF = sF[j, k]
-                    el.A = enc[i].A[j]
-                    el.elst = 3
-                    el.elmat = elmat_radiation
-                    el.elpre = elpre_radiation
-                    el.elpost = elpost_radiation
-                    enc[i].eln[m - 1] = nel - 1
+                    el[-1].label = f"{enc[i].label[j]}-{enc[i].label[k]}"
+                    el[-1].type = 'radiation'
+                    el[-1].nd1 = enc[i].label[j]
+                    el[-1].nd2 = enc[i].label[k]
+                    el[-1].sF = sF[j, k]
+                    el[-1].A = enc[i].A[j]
+                    el[-1].elst = 3
+                    el[-1].elmat = elmat_radiation
+                    el[-1].elpre = elpre_radiation
+                    el[-1].elpost = elpost_radiation
+                    enc[i].eln.append(nel - 1)
         nel = len(el)
 
     # Create the array of all the unique node labels in the model

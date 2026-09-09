@@ -5,6 +5,7 @@ from tkinter import Tk, Label
 from tkinter.font import Font
 from TNSolver_GUI.Thermal_Network_TAB import gUtility
 import numpy as np
+
 # uncomment during the class test
 # from thermal_node import ThermalNode
 # from thermal_network import GraphicWindow
@@ -112,7 +113,11 @@ class ThermalElm:
                 solution = 'Q= ' + str(round(solution, gUtility.digits)) + 'W'
             else:
                 index = np.where(self.solution[:, 0] == time_value)[0]
-                solution = self.solution[index[0], 1]
+                if index.size > 0:  # Check if a match was actually found
+                    idx = index[0]
+                else:
+                    idx = 0  # Fallback to index 0 as requested
+                solution = self.solution[idx, 1]
                 solution = 'Q= ' + str(round(solution, gUtility.digits)) + 'W'
             if self.g_solution is None:  # the solution is not yet in the graphical window
                 self.g_solution = self.can.create_text(self.ctrX,

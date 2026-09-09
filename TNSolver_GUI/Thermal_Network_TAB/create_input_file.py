@@ -15,6 +15,7 @@
 
     Luca Lombardi
     Rev 0: First Draft
+    Rev 1: 04 Sep 2026 Radiation enclosure added
 
 """
 from pint import UnitRegistry
@@ -52,7 +53,7 @@ def unit_conversion2(to_unit, from_unit, from_value):
     return to_magnitude.magnitude
 
 
-def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, functions, materials):
+def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, functions, materials, enclosures=None):
 
     all_mat_list = list(materials.keys())
     f = open(filename, "w")
@@ -435,7 +436,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
                     "\t surfrad \t" +
                     str(element["inlet node id"]) + "\t" +
                     str(element["exit node id"]) + "\t" +
-                    str(element["emissivity"][0]) + "\t" +
+                    str(element["emissivity"]) + "\t" +
                     str(area) + "\t"
                                 "\t!emissivity, A[m²]\n")
         elif element["subtype"] == "Radiation":
@@ -553,13 +554,43 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
         f.write("  20.0 all\ttemperature[°C], all internal nodes\n")
     f.write("End Initial Conditions \n")
 
-    """
-     ----------  Radiation Enclosure Section  ----------
+    # ----------  Radiation Enclosure Section  ----------
     f.write(separator)
-    f.write("Begin Radiation Enclosure \n")
-    ...
-    f.write("End Radiation Enclosure \n")
-    """
+    if enclosures:
+        for enc_id, enc_data in enclosures.items():
+            f.write(f"Begin Radiation Enclosure {enc_id}\n")
+            f.write("   ! label\temissivity\tarea[m²]\tview factor matrix row...\n")
+
+            surfaces = enc_data.get("surfaces", [])
+            emissivities = enc_data.get("emissivities", [])
+            areas = enc_data.get("areas", [])
+            area_units = enc_data.get("area_units", [])
+            matrix = enc_data.get("view_factors", [])
+
+            n = len(surfaces)
+            for i in range(n):
+                node_label = str(surfaces[i])
+                emiss = float(emissivities[i])
+
+                # Area conversion to m² (using unit table if provided)
+                raw_area = float(areas[i])
+                if area_units and i < len(area_units):
+                    area_m2 = unit_conversion('m**2', area_units[i], area_unit_SI, raw_area)
+                else:
+                    area_m2 = raw_area  # Fallback assuming SI m²
+
+                # Format view factor row entries
+                if hasattr(matrix, "shape"):  # NumPy array
+                    row_vf = "\t".join(f"{float(matrix[i, j]):.6f}" for j in range(n))
+                else:  # Nested Python list
+                    row_vf = "\t".join(f"{float(matrix[i][j]):.6f}" for j in range(n))
+
+                # Write line: Label Emissivity Area F_i1 F_i2 ... F_iN
+                f.write(f"   {node_label}\t{emiss:.4f}\t{area_m2:.6e}\t{row_vf}\n")
+
+            f.write(f"End Radiation Enclosure {enc_id}\n\n")
+    else:
+        f.write("! No radiation enclosures defined in the project.\n\n")
 
     # ----------  Functions Section  ----------
     """ functions = {'new': {'abscissa': None,

@@ -1,3 +1,18 @@
+"""
+    Thermal Solver Network - Progress Terminal
+    This class permits the communication of the events with the user avoiding pop-ups and maintaining the
+    journal of the messages
+
+    Luca Lombardi
+    Rev 0: First Draft
+    Rev 1: 2026 Sep 02 Update to handle message levels (Info, Success, Warning, Error) with color coding
+           to improve readability
+
+    To Do:
+
+
+"""
+
 from tkinter import Tk, LabelFrame, Frame, Text, Button, Label, Scrollbar
 
 
@@ -14,19 +29,40 @@ class Terminal(Frame):
         self._y_sidebar.pack(side='right', fill='y')
         self.terminal.configure(yscrollcommand=self._y_sidebar.set)
 
-        # self._clear_button = Button(self._frame_terminal, text="Clear Text", command=self.clear_text)
-        # self._clear_button.pack(expand=1, fill='both', anchor='s')
+        # Configure color tags for log levels
+        self.terminal.tag_config("INFO", foreground="black")
+        self.terminal.tag_config("SUCCESS", foreground="green")
+        self.terminal.tag_config("WARNING", foreground="darkorange")
+        self.terminal.tag_config("ERROR", foreground="red")
 
-    def write_text(self, text):
-        self.terminal.insert("end", text)
+    def write_text(self, text, level="INFO"):
+        """
+        Writes text to terminal. Compatible with string-only calls write_text(msg)
+        and leveled calls write_text(msg, "SUCCESS").
+        """
+        if level.upper() in ["INFO", "SUCCESS", "WARNING", "ERROR"]:
+            tag = level.upper()
+        else:
+            "INFO"
+
+        # Ensure trailing newline if omitted
+        if not text.endswith("\n"):
+            text += "\n"
+
+        self.terminal.config(state="normal")
+        self.terminal.insert("end", text, tag)
         self.terminal.see("end")
 
     def clear_text(self):
+        self.terminal.config(state="normal")
         self.terminal.delete(1.0, "end")
+        self.terminal.config(state="disabled")
 
 
+# -----------------------------------------------------------
+#   Code Testing
+# -----------------------------------------------------------
 def main():
-
     win = Tk()
     win.title('Test of a Terminal Widget')
 
@@ -37,9 +73,7 @@ def main():
     box.grid(row=1, column=2)
 
     for i in range(26):
-        box.write_text("String number: "+str(i)+"\n")
-
-
+        box.write_text("String number: " + str(i) + "\n")
 
     win.mainloop()
 

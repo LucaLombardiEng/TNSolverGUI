@@ -464,42 +464,59 @@ class ThermalNetwork(Frame):
 
     def load_node(self, node):
         """Create a node in the graphic window from the loaded file."""
-        self.node_dict[node["ID"]] = ThermalNode(self.centralFrame.th_canvas, node["ID"], node["type"])
-        self.node_dict[node["ID"]].node_type = node["type"]
-        self.node_dict[node["ID"]].node_label = node["label"]
-        self.node_dict[node["ID"]].node_comment = node["comment"]
-        self.node_dict[node["ID"]].node_material = node["material"]
-        self.node_dict[node["ID"]].node_volume = node["volume"]
-        self.node_dict[node["ID"]].node_density = node["density"]
-        self.node_dict[node["ID"]].node_Cp = node["specific Heat"]
-        self.node_dict[node["ID"]].node_area = node["area"]
-        self.node_dict[node["ID"]].node_temperature = node["temperature"]
-        self.node_dict[node["ID"]].node_heat_flux = node["heat flux"]
-        self.node_dict[node["ID"]].node_volumetric_power = node["volumetric power"]
-        self.node_dict[node["ID"]].node_power = node["power"]
-        self.node_dict[node["ID"]].node_thermostatic_node = node["thermostatic node id"]
-        self.node_dict[node["ID"]].node_temp_on = node["temperature on"]
-        self.node_dict[node["ID"]].node_temp_off = node["temperature off"]
-        if 'solution' in node:
-            self.node_dict[node["ID"]].node_solution = node["solution"]
-        else:
-            self.node_dict[node["ID"]].node_solution = None
+
+        # Store ID locally for cleaner reading
+        node_id = node["ID"]
+
+        # Create the node and assign it to a local variable
+        new_node = ThermalNode(self.centralFrame.th_canvas, node_id, node["type"])
+
+        # Store it in the dictionary immediately
+        self.node_dict[node_id] = new_node
+
+        # Update attributes using the local variable (faster and cleaner)
+        new_node.node_type = node["type"]
+        new_node.node_label = node["label"]
+        new_node.node_comment = node["comment"]
+        new_node.node_material = node["material"]
+        new_node.node_volume = node["volume"]
+        new_node.node_density = node["density"]
+        new_node.node_Cp = node["specific Heat"]
+        new_node.node_area = node["area"]
+        new_node.node_temperature = node["temperature"]
+        new_node.node_heat_flux = node["heat flux"]
+        new_node.node_volumetric_power = node["volumetric power"]
+        new_node.node_power = node["power"]
+        new_node.node_thermostatic_node = node["thermostatic node id"]
+        new_node.node_temp_on = node["temperature on"]
+        new_node.node_temp_off = node["temperature off"]
+        new_node.node_enclosure_id = node.get("enclosure id", "None")
+
+        # Use .get() for optional keys (returns None if not found)
+        new_node.node_solution = node.get("solution")
+
+        # Check the time function
         if 'time function' in node:
-            self.node_dict[node["ID"]].node_fn_time = node['time function']
+            new_node.node_fn_time = node['time function']
         else:
-            self.node_dict[node["ID"]].node_solution = 'const'
+            # Assuming you meant to assign a default to fn_time, not overwrite solution
+            new_node.node_fn_time = 'const'
+            # new_node.node_solution = 'const' <-- this logic is strange should get an array with a fake time and the solution
 
-        self.node_dict[node["ID"]].elm_list_in = node["inlet element list"]
-        self.node_dict[node["ID"]].elm_list_out = node["exit element list"]
+        new_node.elm_list_in = node["inlet element list"]
+        new_node.elm_list_out = node["exit element list"]
 
-        if self.node_dict[node["ID"]].node_solution is None:
-            self.node_dict[node["ID"]].draw_node(node["center X"], node["center Y"])
+        # Draw the node
+        x, y = node["center X"], node["center Y"]
+
+        if new_node.node_solution is None:
+            new_node.draw_node(x, y)
         else:
             analysis = self.solution_Frame.get_analysis_setup()
             if analysis.type == 'Steady State':
-                self.node_dict[node["ID"]].draw_node(node["center X"], node["center Y"], analysis.begin_time)
+                new_node.draw_node(x, y, analysis.begin_time)
             else:
-                self.node_dict[node["ID"]].draw_node(node["center X"], node["center Y"], analysis.end_time)
+                new_node.draw_node(x, y, analysis.end_time)
 
     def load_element(self, elm):
         """Load an element in the graphic window and connect it."""

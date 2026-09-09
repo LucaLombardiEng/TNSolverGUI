@@ -36,6 +36,7 @@ class ThermalNode:
         self.node_temp_off = [20, f'°C']
         self.node_solution = None
         self.node_fn_time = 'const'
+        self.node_enclosure_id = 'None'
         """ graphical properties """
         self.can = canvas
         self.font = Font(root=self.can, font=gUtility.font)  # create font object
@@ -118,7 +119,11 @@ class ThermalNode:
                 solution = 'T= ' + str(round(solution, gUtility.digits)) + '°C'
             else:
                 index = np.where(self.node_solution[:, 0] == time_value)[0]
-                solution = self.node_solution[index[0], 1]
+                if index.size > 0: # Check if a match was actually found
+                    idx = index[0]
+                else:
+                    idx = 0 # Fallback to index 0 as requested
+                solution = self.node_solution[idx, 1]
                 solution = 'T= ' + str(round(solution, gUtility.digits)) + '°C'
             if self.g_solution is None:  # the solution is not yet in the graphical window
                 self.g_solution = self.can.create_text(self.ctrX,
@@ -153,6 +158,7 @@ class ThermalNode:
                            "type": self.node_type,
                            "label": self.node_label,
                            "comment": self.node_comment,
+                           "enclosure id": self.node_enclosure_id,
                            "material": self.node_material,
                            "volume": self.node_volume,
                            "density": self.node_density,
