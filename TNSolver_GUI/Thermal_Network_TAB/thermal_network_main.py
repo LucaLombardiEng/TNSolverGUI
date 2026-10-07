@@ -34,11 +34,13 @@ from TNSolver_GUI.Thermal_Network_TAB import gUtility
 
 class ThermalNetwork(Frame):
 
-    def __init__(self, parent, functions_dict, materials_dict):
-        Frame.__init__(self, parent)
+    def __init__(self, parent, functions_dict, materials_dict, log_manager):
+        #Frame.__init__(self, parent)
+        super().__init__(parent)
         # initialize variables
         self.functions_dict = functions_dict
         self.materials_dict = materials_dict
+        self.log_manager = log_manager
         self.start_vector = []
         self.selected_elm = None
         self.selected_node = None
@@ -54,6 +56,7 @@ class ThermalNetwork(Frame):
         self.solution_Frame = None
         self.slider_Frame = None
         self.bottomFrame = None
+        self.log_manager.register(self.bottomFrame)
         self.plotFrame = None
         self.container = parent
         self.follow_line = False

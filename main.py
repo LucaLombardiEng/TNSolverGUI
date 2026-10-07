@@ -31,6 +31,7 @@ from TNSolver_GUI.Thermal_Network_TAB import gUtility
 from TNSolver_GUI.Thermal_Network_TAB.thermal_network_main import ThermalNetwork
 from TNSolver_GUI.Thermal_Network_TAB.create_input_file import TNSolver_input_file_gen
 from TNSolver_GUI.Thermal_Network_TAB.dxf_viewer import DXFViewer
+from TNSolver_GUI.Thermal_Network_TAB.progress_window import LogManager
 from TNSolver_code.core_solver import tn_solver
 from TNSolver_GUI.Function_TAB.tabular_user_function_main import UserFunctionDefinition
 from TNSolver_GUI.Material_TAB.material_manager_frame_MAIN import MaterialManager
@@ -76,10 +77,9 @@ def win_about():
 
 
 class MainApplication(Frame):
-
     def __init__(self, parent, *args, **kwargs):
         Frame.__init__(self, parent, *args, **kwargs)
-        # Centralized Data Store. This dictionary will hold all function definitions
+          # Centralized Data Store. This dictionary will hold all function definitions
         self.functions_dict = {'new': {'abscissa': None,
                                        'ordinate': None,
                                        'physic_property': None,
@@ -98,6 +98,7 @@ class MainApplication(Frame):
         self.converge_tab = None
         self.tab_ctrl = Notebook(parent)
         self.setup_menubar(parent)
+        self.log_manager = LogManager()
         self.setup_notebook()
         self.working_folder = None
         self.filename = None
@@ -135,11 +136,11 @@ class MainApplication(Frame):
         pass
 
     def setup_notebook(self):
-        # 1. Instantiate Thermal Network Tab first (it creates bottomFrame / Terminal)
-        self.thermal_network_tab = ThermalNetwork(self.tab_ctrl, self.functions_dict, self.project_material_dict)
-        # Extract terminal logger callback reference
+        self.thermal_network_tab = ThermalNetwork(self.tab_ctrl,
+                                                  self.functions_dict,
+                                                  self.project_material_dict,
+                                                  self.log_manager)
         logger_callback = self.thermal_network_tab.bottomFrame.write_text
-        # 2. Pass logger_callback to other helper tabs
         self.user_function_tab = UserFunctionDefinition(self.tab_ctrl, self.functions_dict,
                                                         self.update_function_callback)
         self.user_material_tab = MaterialManager(self.tab_ctrl, self.project_material_dict,
@@ -147,8 +148,7 @@ class MainApplication(Frame):
         self.user_enclosure_tab = RadiationEnclosureManager(parent=self.tab_ctrl,
                                                             main_network_ref=self.thermal_network_tab,
                                                             enclosure_dict=self.enclosure_dict,
-                                                            # Shared dictionary reference
-                                                            logger_cb=self.thermal_network_tab.bottomFrame.write_text)
+                                                            log_manager=self.log_manager)
         self.user_correlation_tab = Frame(self.tab_ctrl)
         self.user_init_cond_tab = Frame(self.tab_ctrl)
         self.converge_tab = Frame(self.tab_ctrl)
@@ -354,7 +354,8 @@ class MainApplication(Frame):
                                 "surfaces": surfaces,
                                 "areas": areas,
                                 "eps": eps,
-                                "F": np.array(vf_matrix, dtype=float) if len(vf_matrix) > 0 else np.empty((0, 0))
+                                "F": np.array(vf_matrix, dtype=float) if len(vf_matrix) > 0 else np.empty((0, 0)),
+                                "is_verified": True
                             }
 
                         self.user_enclosure_tab.enclosures = restored_enclosures
@@ -506,7 +507,7 @@ class MainApplication(Frame):
 
     def run_solver(self):
         if self.filename is None:
-            self.save_network
+            self.save_network()
             self.generate_input_file()
 
         self.thermal_network_tab.bottomFrame.write_text('Regenerating the solver input file...\n\n')

@@ -16,15 +16,16 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import numpy as np
 import scipy.optimize as opt
+from TNSolver_GUI.Thermal_Network_TAB.progress_window import Terminal, LogManager
 
 
 class RadiationEnclosureManager(ttk.Frame):
-    def __init__(self, parent, main_network_ref=None, enclosure_dict=None, logger_cb=None):
+    def __init__(self, parent, main_network_ref=None, enclosure_dict=None, log_manager=None):
         """
         :param parent: Notebook tab container
         :param main_network_ref: Reference to ThermalNetwork instance
         :param enclosure_dict: Reference to master enclosure dictionary in MainApplication
-        :param logger_cb: Callback method pointing to Terminal.write_text
+        :param log_manager: Central LogManager instance for terminal synchronisation
         """
         super().__init__(parent)
         self.main_network_ref = main_network_ref
@@ -35,23 +36,32 @@ class RadiationEnclosureManager(ttk.Frame):
         else:
             self.enclosure_dict = {}
 
+        self.log_manager = log_manager
+
         # Local UI state / active working copy
         self.enclosures = {}
         self.active_enclosure = None
         self.matrix_entries = []
-
-        # Terminal Logger Callback (fallback to print)
-        self.logger = logger_cb if logger_cb is not None else lambda msg, level="INFO": print(f"[{level}] {msg}")
 
         self._build_ui()
 
         # Sync from network canvas whenever this tab becomes active
         self.bind("<Visibility>", lambda e: self.sync_from_network())
 
+    def logger(self, msg, level="INFO"):
+        """Central logging helper routing through LogManager."""
+        if hasattr(self, 'log_manager') and hasattr(self.log_manager, 'write_text'):
+            self.log_manager.write_text(msg, level)
+        else:
+            print(f"[{level}] {msg}")
+
     def _build_ui(self):
+        # Main split container (Vertical to hold content above, terminal below)
+        v_paned = ttk.PanedWindow(self, orient=tk.VERTICAL)
+        v_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         # Main split container
-        main_paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
-        main_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        main_paned = ttk.PanedWindow(v_paned, orient=tk.HORIZONTAL)
+        v_paned.add(main_paned, weight=3)
 
         # ------------------------------------------------------------------
         # LEFT FRAME: Enclosure & Surface Management
@@ -124,17 +134,29 @@ class RadiationEnclosureManager(ttk.Frame):
         build_frame = ttk.LabelFrame(right_frame, text="Thermal Network Builder", padding=5)
         build_frame.pack(fill=tk.X, pady=(10, 0))
 
-        self.net_model_var = tk.StringVar(value="Oppenheim")
+        self.net_model_var = tk.StringVar(value="Gebhart")
         ttk.Radiobutton(build_frame, text="Oppenheim Radiosity Method (Surface + Space Resistors)",
-                        variable=self.net_model_var, value="Oppenheim").pack(anchor=tk.W)
+                        variable=self.net_model_var, value="Oppenheim", state="disabled").pack(anchor=tk.W)
         ttk.Radiobutton(build_frame, text="Direct Gebhart Matrix Method", variable=self.net_model_var,
                         value="Gebhart").pack(anchor=tk.W)
 
-        ttk.Button(
+        # SAVE REFERENCE TO INJECT BUTTON & START DISABLED
+        self.btn_inject = ttk.Button(
             build_frame,
             text="Inject Radiation Network into Main Solver",
-            command=self.inject_network
-        ).pack(fill=tk.X, pady=5)
+            command=self.inject_network,
+            state="disabled"  # Initially disabled
+        )
+        self.btn_inject.pack(fill=tk.X, pady=5)
+
+        # ------------------------------------------------------------------
+        # BOTTOM FRAME: Local Terminal View
+        # ------------------------------------------------------------------
+        self.local_terminal = Terminal(v_paned)
+        v_paned.add(self.local_terminal, weight=1)
+
+        # Register this terminal with the global LogManager passed in __init__
+        self.log_manager.register(self.local_terminal)
 
     # ------------------------------------------------------------------
     # INLINE TREEVIEW EDITING LOGIC
@@ -215,6 +237,7 @@ class RadiationEnclosureManager(ttk.Frame):
                 enc_data["eps"][idx] = val
 
             # Refresh table display and re-verify view factors grid
+            self.invalidate_verification()
             self.refresh_surface_list()
             self.refresh_matrix_grid()
 
@@ -329,19 +352,6 @@ class RadiationEnclosureManager(ttk.Frame):
 
         enc["F"] = new_F
 
-    def add_enclosure(self):
-        enc_id = f"Enclosure_{len(self.enclosures) + 1}"
-        self.enclosures[enc_id] = {
-            "surfaces": [],
-            "areas": [],
-            "eps": [],
-            "F": np.empty((0, 0))
-        }
-        self.combo_enclosures['values'] = list(self.enclosures.keys())
-        self.combo_enclosures.set(enc_id)
-        self.active_enclosure = enc_id
-        self._on_enclosure_selected()
-
     def delete_enclosure(self):
         selected = self.combo_enclosures.get()
         if selected in self.enclosures:
@@ -361,6 +371,7 @@ class RadiationEnclosureManager(ttk.Frame):
         self.active_enclosure = self.combo_enclosures.get()
         self.refresh_surface_list()
         self.refresh_matrix_grid()
+        self.update_inject_button_state()
 
     def refresh_surface_list(self):
         for item in self.surface_tree.get_children():
@@ -438,8 +449,11 @@ class RadiationEnclosureManager(ttk.Frame):
         try:
             val = float(val_str)
             if 0.0 <= val <= 1.0:
-                self.enclosures[self.active_enclosure]["F"][row, col] = val
-                self.refresh_matrix_grid()
+                old_val = self.enclosures[self.active_enclosure]["F"][row, col]
+                if not np.isclose(old_val, val):
+                    self.enclosures[self.active_enclosure]["F"][row, col] = val
+                    self.invalidate_verification()  # Invalidate on change
+                    self.refresh_matrix_grid()
             else:
                 entry_widget.delete(0, tk.END)
                 entry_widget.insert(0, f"{self.enclosures[self.active_enclosure]['F'][row, col]:.4f}")
@@ -549,12 +563,18 @@ class RadiationEnclosureManager(ttk.Frame):
     # ------------------------------------------------------------------
     def check_reciprocity(self):
         """Verifies A_i * F_ij = A_j * F_ji"""
-        if not self.active_enclosure:
+        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             return
+
         data = self.enclosures[self.active_enclosure]
         A = np.array(data["areas"])
         F = data["F"]
         n = len(A)
+
+        if n < 2:
+            self.logger("Reciprocity check requires at least 2 surfaces.", "WARNING")
+            self.invalidate_verification()
+            return
 
         errors = []
         for i in range(n):
@@ -569,8 +589,11 @@ class RadiationEnclosureManager(ttk.Frame):
             self.logger(f"Reciprocity Check Failed for '{self.active_enclosure}':", "WARNING")
             for err in errors:
                 self.logger(f"  -> {err}", "WARNING")
+            self.invalidate_verification()
         else:
             self.logger(f"Reciprocity check passed for '{self.active_enclosure}'.", "SUCCESS")
+            data["is_verified"] = True
+            self.update_inject_button_state()
 
     def enforce_convex_surfaces(self, enc_id):
         """Ensures no self-view factors exist for flat/convex surface nodes."""
@@ -578,14 +601,6 @@ class RadiationEnclosureManager(ttk.Frame):
         np.fill_diagonal(enc["F"], 0.0)
 
     def normalize_matrix(self):
-        """
-        Normalizes the view factor matrix using constrained least-squares optimization (SLSQP).
-        Guarantees:
-          1. Reciprocity: A_i * F_ij = A_j * F_ji
-          2. Closure: sum_j(F_ij) = 1.0
-          3. Physical bounds: 0.0 <= F_ij <= 1.0
-          4. Zero diagonal: F_ii = 0.0
-        """
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             self.logger("Select an enclosure before normalizing.", "WARNING")
             return
@@ -598,63 +613,59 @@ class RadiationEnclosureManager(ttk.Frame):
         if n < 2 or F_init.size == 0:
             return
 
-        # Flatten initial off-diagonal terms to construct the optimization vector
-        # x represents F_ij flattened into a 1D array of size n*n
         x0 = F_init.flatten()
 
-        # Objective function: Minimize sum of squared differences from original initial matrix
         def objective(x):
             return np.sum((x - x0) ** 2)
 
-        # Constraints list
         constraints = []
-
-        # 1. Zero Diagonal Constraints: F_ii = 0
         for i in range(n):
-            constraints.append({
-                'type': 'eq',
-                'fun': lambda x, idx=i: x[idx * n + idx]
-            })
-
-        # 2. Row Closure Constraints: sum_j(F_ij) = 1.0
+            constraints.append({'type': 'eq', 'fun': lambda x, idx=i: x[idx * n + idx]})
         for i in range(n):
-            constraints.append({
-                'type': 'eq',
-                'fun': lambda x, row=i: np.sum(x[row * n: (row + 1) * n]) - 1.0
-            })
-
-        # 3. Reciprocity Constraints: A_i * F_ij - A_j * F_ji = 0
+            constraints.append({'type': 'eq', 'fun': lambda x, row=i: np.sum(x[row * n: (row + 1) * n]) - 1.0})
         for i in range(n):
             for j in range(i + 1, n):
-                constraints.append({
-                    'type': 'eq',
-                    'fun': lambda x, r=i, c=j: A[r] * x[r * n + c] - A[c] * x[c * n + r]
-                })
+                constraints.append({'type': 'eq', 'fun': lambda x, r=i, c=j: A[r] * x[r * n + c] - A[c] * x[c * n + r]})
 
-        # 4. Strict Bounds: 0.0 <= F_ij <= 1.0
         bounds = [(0.0, 1.0) for _ in range(n * n)]
 
-        # Run Sequential Least Squares Programming (SLSQP)
-        res = opt.minimize(
-            objective,
-            x0,
-            method='SLSQP',
-            bounds=bounds,
-            constraints=constraints,
-            options={'maxiter': 500, 'ftol': 1e-6}
-        )
+        res = opt.minimize(objective, x0, method='SLSQP', bounds=bounds, constraints=constraints,
+                           options={'maxiter': 500, 'ftol': 1e-6})
 
         if res.success:
             F_opt = res.x.reshape((n, n))
             np.fill_diagonal(F_opt, 0.0)
             data["F"] = F_opt
-
             self.refresh_matrix_grid()
-            self.logger(
-                f"Successfully normalized enclosure '{self.active_enclosure}'. Bounds [0, 1] & reciprocity enforced.",
-                "SUCCESS")
+            self.logger(f"Successfully normalized enclosure '{self.active_enclosure}'. Bounds & reciprocity enforced.",
+                        "SUCCESS")
+
+            # Auto-verify matrix after successful normalisation
+            self.check_reciprocity()
         else:
             self.logger(f"Optimization failed for '{self.active_enclosure}': {res.message}", "ERROR")
+
+    def clear_matrix(self):
+        """Resets the view factor matrix to zeros and uniform distribution."""
+        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
+            return
+
+        data = self.enclosures[self.active_enclosure]
+        n = len(data["surfaces"])
+        if n == 0:
+            return
+
+        # Reset to uniform distribution matching _resize_matrix logic
+        new_F = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    new_F[i, j] = 1.0 / max(1, n - 1)
+
+        data["F"] = new_F
+        self.invalidate_verification()
+        self.refresh_matrix_grid()
+        self.logger(f"Cleared view factor matrix for '{self.active_enclosure}'.", "INFO")
 
     def inject_network(self):
         """Pushes active enclosure payload into the global enclosure dictionary."""
@@ -689,3 +700,41 @@ class RadiationEnclosureManager(ttk.Frame):
             self.surface_tree.delete(item)
         for child in self.matrix_container.winfo_children():
             child.destroy()
+
+    def invalidate_verification(self):
+        """Invalidates reciprocity state and deactivates injection button."""
+        if self.active_enclosure and self.active_enclosure in self.enclosures:
+            self.enclosures[self.active_enclosure]["is_verified"] = False
+
+            # Remove from active injected network dictionary to prevent unverified export
+            if self.active_enclosure in self.enclosure_dict:
+                del self.enclosure_dict[self.active_enclosure]
+
+        self.update_inject_button_state()
+
+    def update_inject_button_state(self):
+        """Updates the state of the Inject button based on current enclosure verification."""
+        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
+            self.btn_inject.config(state="disabled")
+            return
+
+        is_verified = self.enclosures[self.active_enclosure].get("is_verified", False)
+        if is_verified:
+            self.btn_inject.config(state="normal")
+        else:
+            self.btn_inject.config(state="disabled")
+
+    def add_enclosure(self):
+        enc_id = f"Enclosure_{len(self.enclosures) + 1}"
+        self.enclosures[enc_id] = {
+            "surfaces": [],
+            "areas": [],
+            "eps": [],
+            "F": np.empty((0, 0)),
+            "is_verified": False  # Tracking flag
+        }
+        self.combo_enclosures['values'] = list(self.enclosures.keys())
+        self.combo_enclosures.set(enc_id)
+        self.active_enclosure = enc_id
+        self._on_enclosure_selected()
+
