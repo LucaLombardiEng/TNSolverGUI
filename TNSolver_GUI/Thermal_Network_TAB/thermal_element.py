@@ -12,8 +12,8 @@ import numpy as np
 
 elm_attributes = ('elmID', 'elmType', 'elmSubType', 'label', 'comment', 'material', 'area', 'thermal_conductivity',
                   'velocity', 'characteristic_length', 'angle_theta', 'radius', 'inner_radius', 'outer_radius',
-                  'height', 'width', 'convection_htc', 'x_begin', 'x_end', 'emissivity', 'exchange_factor_12',
-                  'exchange_factor_21', 'ctrX', 'ctrY', 'nodeIn', 'nodeOut', 'color')
+                  'height', 'width', 'convection_htc', 'x_begin', 'x_end', 'emissivity', 'sF', 'enclosure_id',
+                  'is_auto_generated', 'ctrX', 'ctrY', 'nodeIn', 'nodeOut', 'color')
 
 
 class ThermalElm:
@@ -39,8 +39,11 @@ class ThermalElm:
         self.x_begin = [0, f'm']
         self.x_end = [1, f'm']
         self.emissivity = [1, '']
-        self.exchange_factor_12 = [0, '']
-        self.exchange_factor_21 = [0, '']
+        self.enclosure_id = None
+        self.sF = [0, '']
+        self.is_auto_generated = False
+        # self.exchange_factor_12 = [0, '']
+        # self.exchange_factor_21 = [0, '']
         self.solution = None
         """ graphical properties """
         self.can = can
@@ -218,6 +221,9 @@ class ThermalElm:
                           "x begin": self.x_begin,
                           "x end": self.x_end,
                           "emissivity": self.emissivity,
+                          "is_auto_generated": self.is_auto_generated,
+                          "enclosure_id": self.enclosure_id,
+                          "sF": self.sF,
                           "exchange factor 12": self.exchange_factor_12,
                           "exchange factor 21": self.exchange_factor_21,
                           "center X": self.ctrX,

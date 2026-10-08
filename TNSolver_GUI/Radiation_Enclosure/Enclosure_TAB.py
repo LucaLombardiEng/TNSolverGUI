@@ -1,15 +1,12 @@
 """
-    Class RadiationEnclosureManager
-    This GUI is designed to manage the radiation enclosures defined on the nodes
-    It gives the possibility of defining the radiation factors anc check the matrices consistency
+Class RadiationEnclosureManager
+GUI module to manage radiation enclosures defined on thermal network nodes.
+Provides view factor matrix editing, reciprocity checks, matrix normalization,
+and dual-mode radiation network injection into TNSolverGUI.
 
-    Luca Lombardi
-    01 Sep 2026: First Draft
-
-    KNOWN ISSUES LIST
-    -
-
-
+Luca Lombardi
+01 Sep 2026: First Draft
+08 Oct 2026: Added dual injection mode (Enclosure Block & Explicit Gebhart Branches)
 """
 
 import tkinter as tk
@@ -59,6 +56,7 @@ class RadiationEnclosureManager(ttk.Frame):
         # Main split container (Vertical to hold content above, terminal below)
         v_paned = ttk.PanedWindow(self, orient=tk.VERTICAL)
         v_paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
         # Main split container
         main_paned = ttk.PanedWindow(v_paned, orient=tk.HORIZONTAL)
         v_paned.add(main_paned, weight=3)
@@ -100,18 +98,19 @@ class RadiationEnclosureManager(ttk.Frame):
         self.surface_tree.column("emissivity", width=80, anchor=tk.CENTER)
         self.surface_tree.pack(fill=tk.BOTH, expand=True, pady=2)
 
-        # BIND DOUBLE CLICK FOR INLINE EDITING
+        # Bind double click for inline editing
         self.surface_tree.bind("<Double-1>", self._on_tree_double_click)
 
         # Surface action buttons
         surf_btn_frame = ttk.Frame(left_frame)
         surf_btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(surf_btn_frame, text="Add Nodes", command=self.add_nodes_to_enclosure).pack(side=tk.LEFT,
-                                                                                               expand=True, fill=tk.X,
-                                                                                               padx=2)
-        ttk.Button(surf_btn_frame, text="Remove Selected", command=self.remove_selected_node).pack(side=tk.LEFT,
-                                                                                                   expand=True,
-                                                                                                   fill=tk.X, padx=2)
+        ttk.Button(surf_btn_frame, text="Add Nodes", command=self.add_nodes_to_enclosure).pack(
+            side=tk.LEFT, expand=True, fill=tk.X, padx=2
+        )
+        ttk.Button(surf_btn_frame, text="Remove Selected", command=self.remove_selected_node).pack(
+            side=tk.LEFT, expand=True, fill=tk.X, padx=2
+        )
+
         # ------------------------------------------------------------------
         # RIGHT FRAME: View Factor Matrix & Network Construction
         # ------------------------------------------------------------------
@@ -127,27 +126,59 @@ class RadiationEnclosureManager(ttk.Frame):
         matrix_actions.pack(fill=tk.X, pady=5)
 
         ttk.Button(matrix_actions, text="Check Reciprocity", command=self.check_reciprocity).pack(side=tk.LEFT, padx=5)
-        ttk.Button(matrix_actions, text="Normalize Matrix (Sum = 1.0)", command=self.normalize_matrix).pack(
-            side=tk.LEFT, padx=5)
+        ttk.Button(
+            matrix_actions, text="Normalize Matrix (Sum = 1.0)", command=self.normalize_matrix
+        ).pack(side=tk.LEFT, padx=5)
 
         # Build Network Injection Controls
         build_frame = ttk.LabelFrame(right_frame, text="Thermal Network Builder", padding=5)
         build_frame.pack(fill=tk.X, pady=(10, 0))
 
+        ttk.Label(build_frame, text="Radiation Method:", font=('Helvetica', 9, 'bold')).pack(anchor=tk.W, pady=(2, 2))
         self.net_model_var = tk.StringVar(value="Gebhart")
-        ttk.Radiobutton(build_frame, text="Oppenheim Radiosity Method (Surface + Space Resistors)",
-                        variable=self.net_model_var, value="Oppenheim", state="disabled").pack(anchor=tk.W)
-        ttk.Radiobutton(build_frame, text="Direct Gebhart Matrix Method", variable=self.net_model_var,
-                        value="Gebhart").pack(anchor=tk.W)
+        ttk.Radiobutton(
+            build_frame,
+            text="Oppenheim Radiosity Method (Surface + Space Resistors)",
+            variable=self.net_model_var,
+            value="Oppenheim",
+            state="disabled"
+        ).pack(anchor=tk.W, padx=5)
+        ttk.Radiobutton(
+            build_frame,
+            text="Direct Gebhart Matrix Method",
+            variable=self.net_model_var,
+            value="Gebhart"
+        ).pack(anchor=tk.W, padx=5)
 
-        # SAVE REFERENCE TO INJECT BUTTON & START DISABLED
+        ttk.Separator(build_frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=6)
+
+        ttk.Label(build_frame, text="Injection Target & Format:", font=('Helvetica', 9, 'bold')).pack(anchor=tk.W, pady=(2, 2))
+        self.injection_mode_var = tk.StringVar(value="block")
+
+        rb_block = ttk.Radiobutton(
+            build_frame,
+            text="Enclosure Block in Input File (Backward Compatible)",
+            variable=self.injection_mode_var,
+            value="block"
+        )
+        rb_block.pack(anchor=tk.W, padx=5)
+
+        rb_branches = ttk.Radiobutton(
+            build_frame,
+            text="Explicit Gebhart Conductors into Thermal Network Graph",
+            variable=self.injection_mode_var,
+            value="branches"
+        )
+        rb_branches.pack(anchor=tk.W, padx=5)
+
+        # Save reference to inject button & start disabled
         self.btn_inject = ttk.Button(
             build_frame,
             text="Inject Radiation Network into Main Solver",
             command=self.inject_network,
-            state="disabled"  # Initially disabled
+            state="disabled"
         )
-        self.btn_inject.pack(fill=tk.X, pady=5)
+        self.btn_inject.pack(fill=tk.X, pady=(8, 5))
 
         # ------------------------------------------------------------------
         # BOTTOM FRAME: Local Terminal View
@@ -156,7 +187,8 @@ class RadiationEnclosureManager(ttk.Frame):
         v_paned.add(self.local_terminal, weight=1)
 
         # Register this terminal with the global LogManager passed in __init__
-        self.log_manager.register(self.local_terminal)
+        if self.log_manager:
+            self.log_manager.register(self.local_terminal)
 
     # ------------------------------------------------------------------
     # INLINE TREEVIEW EDITING LOGIC
@@ -170,10 +202,9 @@ class RadiationEnclosureManager(ttk.Frame):
         if region != "cell":
             return
 
-        column = self.surface_tree.identify_column(event.x)  # Returns '#1', '#2', or '#3'
+        column = self.surface_tree.identify_column(event.x)
         col_idx = int(column[1:]) - 1
 
-        # Only allow editing Area (col 1) and Emissivity (col 2)
         if col_idx not in (1, 2):
             return
 
@@ -185,19 +216,16 @@ class RadiationEnclosureManager(ttk.Frame):
         node_id = item_values[0]
         current_val = item_values[col_idx]
 
-        # Get cell bounding box (x, y, width, height)
         cell_bbox = self.surface_tree.bbox(selected_iid, column)
         if not cell_bbox:
             return
 
-        # Create overlay entry box
         entry = ttk.Entry(self.surface_tree, width=cell_bbox[2])
         entry.place(x=cell_bbox[0], y=cell_bbox[1], w=cell_bbox[2], h=cell_bbox[3])
         entry.insert(0, current_val)
         entry.select_range(0, tk.END)
         entry.focus()
 
-        # Bind submission events
         entry.bind("<Return>", lambda e: self._save_cell_edit(entry, node_id, col_idx))
         entry.bind("<FocusOut>", lambda e: self._save_cell_edit(entry, node_id, col_idx))
         entry.bind("<Escape>", lambda e: entry.destroy())
@@ -215,13 +243,12 @@ class RadiationEnclosureManager(ttk.Frame):
 
             idx = enc_data["surfaces"].index(node_id)
 
-            if col_idx == 1:  # Area [m²]
+            if col_idx == 1:
                 if val <= 0:
                     messagebox.showerror("Error", "Area must be a positive number.")
                     return
                 enc_data["areas"][idx] = val
 
-                # Update node object in main network reference if present
                 live_nodes = self.get_available_nodes()
                 node_obj = live_nodes.get(int(node_id) if str(node_id).isdigit() else node_id)
                 if node_obj:
@@ -230,13 +257,12 @@ class RadiationEnclosureManager(ttk.Frame):
                     else:
                         setattr(node_obj, "node_area", val)
 
-            elif col_idx == 2:  # Emissivity (ε)
+            elif col_idx == 2:
                 if not (0.0 <= val <= 1.0):
                     messagebox.showerror("Error", "Emissivity (ε) must be between 0.0 and 1.0.")
                     return
                 enc_data["eps"][idx] = val
 
-            # Refresh table display and re-verify view factors grid
             self.invalidate_verification()
             self.refresh_surface_list()
             self.refresh_matrix_grid()
@@ -254,15 +280,11 @@ class RadiationEnclosureManager(ttk.Frame):
         return {}
 
     def sync_from_network(self):
-        """
-        Scans all nodes in main_network_ref for 'node_enclosure_id',
-        grouping nodes into corresponding enclosures automatically.
-        """
+        """Scans all nodes in main_network_ref, grouping nodes into corresponding enclosures."""
         live_nodes = self.get_available_nodes()
         if not live_nodes:
             return
 
-        # Map detected enclosure IDs to node objects
         detected_groups = {}
         for n_id, node in live_nodes.items():
             enc_id = getattr(node, 'node_enclosure_id', None)
@@ -270,18 +292,17 @@ class RadiationEnclosureManager(ttk.Frame):
                 enc_id = str(enc_id).strip()
                 detected_groups.setdefault(enc_id, []).append(node)
 
-        # Sync detected groups into local enclosures dict
         for enc_id, nodes in detected_groups.items():
             if enc_id not in self.enclosures:
                 self.enclosures[enc_id] = {
                     "surfaces": [],
                     "areas": [],
                     "eps": [],
-                    "F": np.empty((0, 0))
+                    "F": np.empty((0, 0)),
+                    "is_verified": False
                 }
 
             enc = self.enclosures[enc_id]
-            # Guarantee both key aliases exist locally
             if "eps" not in enc and "emissivities" in enc:
                 enc["eps"] = enc.pop("emissivities")
             if "F" not in enc:
@@ -290,11 +311,9 @@ class RadiationEnclosureManager(ttk.Frame):
 
             existing_ids = set(str(n) for n in enc["surfaces"])
 
-            # Add missing nodes detected in network
             for node in nodes:
                 str_id = str(node.node_ID)
                 if str_id not in existing_ids:
-                    # Extract area value safely from node vector if defined
                     raw_area = getattr(node, "node_area", 1.0)
                     area_val = raw_area[0] if isinstance(raw_area, (list, tuple)) else raw_area
                     try:
@@ -306,10 +325,8 @@ class RadiationEnclosureManager(ttk.Frame):
                     enc["areas"].append(area_val)
                     enc["eps"].append(0.85)
 
-            # Re-dimension View Factor Matrix
             self._resize_matrix(enc_id)
 
-        # Refresh dropdown UI
         names = list(self.enclosures.keys())
         self.combo_enclosures['values'] = names
 
@@ -324,10 +341,9 @@ class RadiationEnclosureManager(ttk.Frame):
             self.refresh_matrix_grid()
 
     def _resize_matrix(self, enc_id):
-        """Helper to resize View Factor Matrix while retaining existing entries."""
+        """Resizes View Factor Matrix while retaining existing entries."""
         enc = self.enclosures[enc_id]
 
-        # Ensure 'F' key exists and is a proper NumPy array
         if "F" not in enc:
             raw_matrix = enc.get("view_factors", np.empty((0, 0)))
             enc["F"] = np.array(raw_matrix, dtype=float) if len(raw_matrix) > 0 else np.empty((0, 0))
@@ -344,7 +360,6 @@ class RadiationEnclosureManager(ttk.Frame):
             min_n = min(old_n, new_n)
             new_F[:min_n, :min_n] = enc["F"][:min_n, :min_n]
 
-        # Uniform distribution across non-diagonal entries for new surfaces
         for i in range(new_n):
             for j in range(new_n):
                 if i != j and new_F[i, j] == 0.0:
@@ -356,6 +371,8 @@ class RadiationEnclosureManager(ttk.Frame):
         selected = self.combo_enclosures.get()
         if selected in self.enclosures:
             del self.enclosures[selected]
+            if selected in self.enclosure_dict:
+                del self.enclosure_dict[selected]
             names = list(self.enclosures.keys())
             self.combo_enclosures['values'] = names
             if names:
@@ -385,7 +402,7 @@ class RadiationEnclosureManager(ttk.Frame):
             self.surface_tree.insert("", tk.END, values=(node, area, e))
 
     def refresh_matrix_grid(self):
-        """Rebuilds the View Factor Matrix grid and disables main diagonal (F_ii) inputs."""
+        """Rebuilds the View Factor Matrix grid and disables main diagonal inputs."""
         for child in self.matrix_container.winfo_children():
             child.destroy()
 
@@ -398,41 +415,31 @@ class RadiationEnclosureManager(ttk.Frame):
         if n == 0:
             return
 
-        # Always force diagonal elements to 0.0 in the internal numerical matrix
         np.fill_diagonal(data["F"], 0.0)
 
-        # Header Row
-        ttk.Label(self.matrix_container, text="F(i,j)", font=('Helvetica', 9, 'bold')).grid(row=0, column=0, padx=4,
-                                                                                            pady=4)
+        ttk.Label(self.matrix_container, text="F(i,j)", font=('Helvetica', 9, 'bold')).grid(row=0, column=0, padx=4, pady=4)
         for j, s_name in enumerate(surfaces):
-            ttk.Label(self.matrix_container, text=str(s_name), font=('Helvetica', 9, 'bold')).grid(row=0, column=j + 1,
-                                                                                                   padx=4, pady=4)
-        ttk.Label(self.matrix_container, text="Row Sum", font=('Helvetica', 9, 'bold')).grid(row=0, column=n + 1,
-                                                                                             padx=8, pady=4)
+            ttk.Label(self.matrix_container, text=str(s_name), font=('Helvetica', 9, 'bold')).grid(row=0, column=j + 1, padx=4, pady=4)
+        ttk.Label(self.matrix_container, text="Row Sum", font=('Helvetica', 9, 'bold')).grid(row=0, column=n + 1, padx=8, pady=4)
 
         self.matrix_entries = []
         for i in range(n):
             row_entries = []
-            ttk.Label(self.matrix_container, text=str(surfaces[i]), font=('Helvetica', 9, 'bold')).grid(row=i + 1,
-                                                                                                        column=0,
-                                                                                                        padx=4, pady=4)
+            ttk.Label(self.matrix_container, text=str(surfaces[i]), font=('Helvetica', 9, 'bold')).grid(row=i + 1, column=0, padx=4, pady=4)
 
             for j in range(n):
                 e = ttk.Entry(self.matrix_container, width=8, justify="center")
                 e.insert(0, f"{data['F'][i, j]:.4f}")
 
-                # Disable main diagonal (F_ii) to prevent non-physical self-view inputs
                 if i == j:
                     e.config(state="disabled")
                 else:
-                    # Optional: Bind edit events to save manual input directly into array
                     e.bind("<FocusOut>", lambda ev, row=i, col=j, entry=e: self._on_matrix_cell_edit(row, col, entry))
                     e.bind("<Return>", lambda ev, row=i, col=j, entry=e: self._on_matrix_cell_edit(row, col, entry))
 
                 e.grid(row=i + 1, column=j + 1, padx=2, pady=2)
                 row_entries.append(e)
 
-            # Calculate and display row sum status
             r_sum = np.sum(data['F'][i, :]) if data['F'].size > 0 else 0.0
             sum_label = ttk.Label(self.matrix_container, text=f"{r_sum:.3f}")
             sum_label.config(foreground="green" if np.isclose(r_sum, 1.0, atol=1e-2) else "red")
@@ -441,7 +448,6 @@ class RadiationEnclosureManager(ttk.Frame):
             self.matrix_entries.append(row_entries)
 
     def _on_matrix_cell_edit(self, row, col, entry_widget):
-        """Helper callback to update local state when a user manually modifies F_ij."""
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             return
 
@@ -452,7 +458,7 @@ class RadiationEnclosureManager(ttk.Frame):
                 old_val = self.enclosures[self.active_enclosure]["F"][row, col]
                 if not np.isclose(old_val, val):
                     self.enclosures[self.active_enclosure]["F"][row, col] = val
-                    self.invalidate_verification()  # Invalidate on change
+                    self.invalidate_verification()
                     self.refresh_matrix_grid()
             else:
                 entry_widget.delete(0, tk.END)
@@ -510,7 +516,6 @@ class RadiationEnclosureManager(ttk.Frame):
                 raw_area = getattr(node_obj, "node_area", 1.0) if node_obj else 1.0
                 area_val = raw_area[0] if isinstance(raw_area, (list, tuple)) else raw_area
 
-                # Also set the enclosure ID on the node object directly
                 if node_obj:
                     setattr(node_obj, 'node_enclosure_id', self.active_enclosure)
 
@@ -546,10 +551,8 @@ class RadiationEnclosureManager(ttk.Frame):
             enc_data["areas"].pop(idx)
             enc_data["eps"].pop(idx)
 
-            # Strip row and column from matrix
             enc_data["F"] = np.delete(np.delete(enc_data["F"], idx, axis=0), idx, axis=1)
 
-            # Reset node attribute in main network reference if available
             live_nodes = self.get_available_nodes()
             node_obj = live_nodes.get(int(node_id) if node_id.isdigit() else node_id)
             if node_obj:
@@ -559,8 +562,29 @@ class RadiationEnclosureManager(ttk.Frame):
             self.refresh_matrix_grid()
 
     # ------------------------------------------------------------------
-    # MATRIX CALCULATIONS & VALIDATIONS
+    # MATRIX CALCULATIONS & GEBHART SOLVER
     # ------------------------------------------------------------------
+    def compute_gebhart_matrix(self, F, eps):
+        """
+        Computes the Gebhart factor matrix B_ij using diffuse radiation theory:
+        B = (I - F * (I - E))^-1 * F * E
+        """
+        n = len(eps)
+        if n == 0 or F.shape != (n, n):
+            return np.empty((0, 0))
+
+        I = np.eye(n)
+        E_diag = np.diag(eps)
+        I_minus_E = np.diag(1.0 - np.array(eps))
+
+        M = I - np.dot(F, I_minus_E)
+        try:
+            B = np.linalg.solve(M, np.dot(F, E_diag))
+            return B
+        except np.linalg.LinAlgError:
+            self.logger("Linear system for Gebhart factors is singular.", "ERROR")
+            return np.zeros((n, n))
+
     def check_reciprocity(self):
         """Verifies A_i * F_ij = A_j * F_ji"""
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
@@ -583,7 +607,9 @@ class RadiationEnclosureManager(ttk.Frame):
                 q2 = A[j] * F[j, i]
                 if not np.isclose(q1, q2, rtol=1e-3, atol=1e-5):
                     errors.append(
-                        f"Pair ({data['surfaces'][i]}, {data['surfaces'][j]}): A_i*F_ij={q1:.4f} != A_j*F_ji={q2:.4f}")
+                        f"Pair ({data['surfaces'][i]}, {data['surfaces'][j]}): "
+                        f"A_i*F_ij={q1:.4f} != A_j*F_ji={q2:.4f}"
+                    )
 
         if errors:
             self.logger(f"Reciprocity Check Failed for '{self.active_enclosure}':", "WARNING")
@@ -629,24 +655,26 @@ class RadiationEnclosureManager(ttk.Frame):
 
         bounds = [(0.0, 1.0) for _ in range(n * n)]
 
-        res = opt.minimize(objective, x0, method='SLSQP', bounds=bounds, constraints=constraints,
-                           options={'maxiter': 500, 'ftol': 1e-6})
+        res = opt.minimize(
+            objective, x0, method='SLSQP', bounds=bounds, constraints=constraints,
+            options={'maxiter': 500, 'ftol': 1e-6}
+        )
 
         if res.success:
             F_opt = res.x.reshape((n, n))
             np.fill_diagonal(F_opt, 0.0)
             data["F"] = F_opt
             self.refresh_matrix_grid()
-            self.logger(f"Successfully normalized enclosure '{self.active_enclosure}'. Bounds & reciprocity enforced.",
-                        "SUCCESS")
-
-            # Auto-verify matrix after successful normalisation
+            self.logger(
+                f"Successfully normalized enclosure '{self.active_enclosure}'. Bounds & reciprocity enforced.",
+                "SUCCESS"
+            )
             self.check_reciprocity()
         else:
             self.logger(f"Optimization failed for '{self.active_enclosure}': {res.message}", "ERROR")
 
     def clear_matrix(self):
-        """Resets the view factor matrix to zeros and uniform distribution."""
+        """Resets the view factor matrix to uniform distribution."""
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             return
 
@@ -655,7 +683,6 @@ class RadiationEnclosureManager(ttk.Frame):
         if n == 0:
             return
 
-        # Reset to uniform distribution matching _resize_matrix logic
         new_F = np.zeros((n, n))
         for i in range(n):
             for j in range(n):
@@ -667,34 +694,130 @@ class RadiationEnclosureManager(ttk.Frame):
         self.refresh_matrix_grid()
         self.logger(f"Cleared view factor matrix for '{self.active_enclosure}'.", "INFO")
 
+    # ------------------------------------------------------------------
+    # INJECTION LOGIC (BLOCK VS EXPLICIT BRANCHES)
+    # ------------------------------------------------------------------
     def inject_network(self):
-        """Pushes active enclosure payload into the global enclosure dictionary."""
+        """
+        Pushes active enclosure payload either as a structured Enclosure Block (backward compatible)
+        or directly as explicit Gebhart radiation branches into the Thermal Network graph.
+        """
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             self.logger("No active enclosure to inject.", "WARNING")
             return
 
         data = self.enclosures[self.active_enclosure]
-
-        # Extract local UI 'eps' list safely, falling back to 0.85 if missing
         surfaces = data.get("surfaces", [])
         areas = data.get("areas", [])
         emissivities = data.get("eps", [0.85] * len(surfaces))
+        matrix = data.get("F", np.empty((0, 0)))
 
-        # Convert matrix array to a standard list for serialization
-        matrix = data.get("F", [])
-        view_factors = matrix.tolist() if hasattr(matrix, "tolist") else matrix
+        if len(surfaces) < 2:
+            self.logger("At least 2 surfaces are required to perform network injection.", "WARNING")
+            return
 
-        # Populate the shared master dictionary
+        # Compute Gebhart Factor Matrix B_ij
+        B_matrix = self.compute_gebhart_matrix(matrix, emissivities)
+        mode = self.injection_mode_var.get()
+
+        if mode == "block":
+            self._inject_as_enclosure_block(data, surfaces, areas, emissivities, matrix, B_matrix)
+        elif mode == "branches":
+            self._inject_as_explicit_branches(surfaces, areas, B_matrix)
+
+    def _inject_as_enclosure_block(self, data, surfaces, areas, emissivities, F_matrix, B_matrix):
+        """Populates the master enclosure dictionary as a unified block for backward compatibility."""
+        block_payload = {
+            "surfaces": surfaces,
+            "areas": areas,
+            "emissivities": emissivities,
+            "view_factors": F_matrix.tolist() if hasattr(F_matrix, "tolist") else F_matrix,
+            "gebhart_factors": B_matrix.tolist() if hasattr(B_matrix, "tolist") else B_matrix,
+            "model": self.net_model_var.get(),
+            "injection_mode": "block"
+        }
+
+        self.enclosure_dict[self.active_enclosure] = block_payload
+
+        # Sync back to main_network_ref if it holds an enclosure dictionary
+        if self.main_network_ref and hasattr(self.main_network_ref, "enclosure_dict"):
+            self.main_network_ref.enclosure_dict[self.active_enclosure] = block_payload
+
+        self.logger(
+            f"Enclosure block '{self.active_enclosure}' injected successfully (Backward Compatible Format).",
+            "SUCCESS"
+        )
+
+    def _inject_as_explicit_branches(self, surfaces, areas, B_matrix):
+        """Generates explicit radiation branch couplings in main_network_ref."""
+        if not self.main_network_ref:
+            self.logger("Main network reference not found. Unable to inject explicit branches.", "ERROR")
+            return
+
+        n = len(surfaces)
+        sigma = 5.670374419e-8  # Stefan-Boltzmann constant W/(m² K⁴)
+        added_count = 0
+
+        # Also maintain block record for configuration consistency
         self.enclosure_dict[self.active_enclosure] = {
             "surfaces": surfaces,
             "areas": areas,
-            "emissivities": emissivities,  # Mapped correctly from 'eps'
-            "view_factors": view_factors,
-            "model": self.net_model_var.get()
+            "gebhart_factors": B_matrix.tolist() if hasattr(B_matrix, "tolist") else B_matrix,
+            "model": self.net_model_var.get(),
+            "injection_mode": "branches"
         }
 
-        self.logger(f"Enclosure '{self.active_enclosure}' injected into Thermal Network.", "SUCCESS")
+        # Calculate radiative coupling conductance factors C_ij = A_i * B_ij
+        for i in range(n):
+            for j in range(i + 1, n):
+                c_ij = areas[i] * B_matrix[i, j]
+                c_ji = areas[j] * B_matrix[j, i]
+                coupling_factor = 0.5 * (c_ij + c_ji)  # Enforce reciprocity symmetry
 
+                if coupling_factor > 1e-12:
+                    node_a = surfaces[i]
+                    node_b = surfaces[j]
+                    branch_id = f"Rad_{self.active_enclosure}_{node_a}_{node_b}"
+                    rad_conductance = sigma * coupling_factor
+
+                    # Method dispatch on main_network_ref
+                    if hasattr(self.main_network_ref, "add_radiation_branch"):
+                        self.main_network_ref.add_radiation_branch(
+                            branch_id=branch_id,
+                            node_a=node_a,
+                            node_b=node_b,
+                            conductance=rad_conductance,
+                            coupling_area=coupling_factor
+                        )
+                        added_count += 1
+                    elif hasattr(self.main_network_ref, "add_branch"):
+                        self.main_network_ref.add_branch(
+                            node_a=node_a,
+                            node_b=node_b,
+                            branch_type="Radiation",
+                            value=rad_conductance,
+                            tag=self.active_enclosure
+                        )
+                        added_count += 1
+                    elif hasattr(self.main_network_ref, "branch_dict"):
+                        self.main_network_ref.branch_dict[branch_id] = {
+                            "node_a": node_a,
+                            "node_b": node_b,
+                            "type": "Radiation",
+                            "conductance": rad_conductance,
+                            "coupling_factor": coupling_factor,
+                            "enclosure": self.active_enclosure
+                        }
+                        added_count += 1
+
+        self.logger(
+            f"Injected {added_count} explicit Gebhart radiation branches into network for '{self.active_enclosure}'.",
+            "SUCCESS"
+        )
+
+    # ------------------------------------------------------------------
+    # UI HELPERS & STATE MANAGEMENT
+    # ------------------------------------------------------------------
     def _clear_views(self):
         for item in self.surface_tree.get_children():
             self.surface_tree.delete(item)
@@ -706,7 +829,6 @@ class RadiationEnclosureManager(ttk.Frame):
         if self.active_enclosure and self.active_enclosure in self.enclosures:
             self.enclosures[self.active_enclosure]["is_verified"] = False
 
-            # Remove from active injected network dictionary to prevent unverified export
             if self.active_enclosure in self.enclosure_dict:
                 del self.enclosure_dict[self.active_enclosure]
 
@@ -731,10 +853,9 @@ class RadiationEnclosureManager(ttk.Frame):
             "areas": [],
             "eps": [],
             "F": np.empty((0, 0)),
-            "is_verified": False  # Tracking flag
+            "is_verified": False
         }
         self.combo_enclosures['values'] = list(self.enclosures.keys())
         self.combo_enclosures.set(enc_id)
         self.active_enclosure = enc_id
         self._on_enclosure_selected()
-
