@@ -542,8 +542,9 @@ class ThermalNetwork(Frame):
         self.elm_dict[elmID].x_begin = elm["x begin"]
         self.elm_dict[elmID].x_end = elm["x end"]
         self.elm_dict[elmID].emissivity = elm["emissivity"]
-        self.elm_dict[elmID].exchange_factor_12 = elm["exchange factor 12"]
-        self.elm_dict[elmID].exchange_factor_21 = elm["exchange factor 21"]
+        self.elm_dict[elmID].exchange_factor = elm["exchange factor"]
+        self.elm_dict[elmID].enclosure_id = elm.get("enclosure_id",None)
+        self.elm_dict[elmID].is_auto_generated = elm.get("is_auto_generated",False)
         self.elm_dict[elmID].nodeIn = elm["inlet node id"]
         self.elm_dict[elmID].nodeOut = elm["exit node id"]
 
@@ -854,6 +855,122 @@ class ThermalNetwork(Frame):
     def update_material(self):
         self.bottomFrame.write_text('The dictionary of the materials has been just updated!\n')
         pass
+
+    def get_next_element_id(self):
+        """Return an unused integer element ID."""
+        if not self.elm_dict:
+            return 1
+
+        numeric_ids = [
+            int(elm_id)
+            for elm_id in self.elm_dict
+            if str(elm_id).isdigit()
+        ]
+
+        return max(numeric_ids, default=0) + 1
+
+    def remove_auto_generated_elements(self, enclosure_id):
+        """
+        Remove all automatically generated elements belonging to an enclosure.
+        Returns the number of removed elements.
+        """
+        elements_to_remove = [
+            elm_id
+            for elm_id, element in self.elm_dict.items()
+            if element.is_auto_generated
+            and str(element.enclosure_id) == str(enclosure_id)
+        ]
+
+        for elm_id in elements_to_remove:
+            element = self.elm_dict[elm_id]
+
+            node_in = element.nodeIn
+            node_out = element.nodeOut
+
+            element.delete_elm()
+
+            if node_in in self.node_dict:
+                node = self.node_dict[node_in]
+                if elm_id in node.elm_list_in:
+                    node.elm_list_in.remove(elm_id)
+
+            if node_out in self.node_dict:
+                node = self.node_dict[node_out]
+                if elm_id in node.elm_list_out:
+                    node.elm_list_out.remove(elm_id)
+
+            del self.elm_dict[elm_id]
+
+            if elm_id in self.item_selection["elm"]:
+                self.item_selection["elm"].remove(elm_id)
+
+        return len(elements_to_remove)
+
+    def add_auto_generated_radiation_element(self, node_in, node_out, exchange_factor, area,
+                                             enclosure_id, x=None, y=None):
+        """
+        Create a complete radiation element in the live thermal-network graph.
+        The caller supplies the dimensionless exchange factor and emitting area.
+        """
+        node_in = int(node_in) if str(node_in).isdigit() else node_in
+        node_out = int(node_out) if str(node_out).isdigit() else node_out
+
+        if node_in not in self.node_dict:
+            raise KeyError(f"Radiation inlet node '{node_in}' does not exist.")
+
+        if node_out not in self.node_dict:
+            raise KeyError(f"Radiation outlet node '{node_out}' does not exist.")
+
+        if node_in == node_out:
+            raise ValueError("A radiation element cannot connect a node to itself.")
+
+        elm_id = self.get_next_element_id()
+
+        element = ThermalElm(
+            self.centralFrame.th_canvas,
+            elm_id,
+            "Radiation",
+            "Radiation"
+        )
+
+        element.label = f"Rad_{enclosure_id}_{node_in}_{node_out}"
+        element.comment = (
+            f"Automatically generated radiation element "
+            f"for enclosure {enclosure_id}"
+        )
+        element.area = [float(area), "m²"]
+        element.exchange_factor = [float(exchange_factor), ""]
+        element.enclosure_id = str(enclosure_id)
+        element.is_auto_generated = True
+
+        node_in_obj = self.node_dict[node_in]
+        node_out_obj = self.node_dict[node_out]
+
+        if x is None:
+            x = 0.5 * (node_in_obj.ctrX + node_out_obj.ctrX)
+
+        if y is None:
+            y = 0.5 * (node_in_obj.ctrY + node_out_obj.ctrY)
+
+        element.draw_elm(x, y)
+
+        element.draw_connector_in(
+            node_in_obj.ctrX,
+            node_in_obj.ctrY,
+            node_in
+        )
+        element.draw_connector_out(
+            node_out_obj.ctrX,
+            node_out_obj.ctrY,
+            node_out
+        )
+
+        self.elm_dict[elm_id] = element
+
+        node_in_obj.elm_list_in.append(elm_id)
+        node_out_obj.elm_list_out.append(elm_id)
+
+        return element
 
 # ---------------------------------------------------------------------------------------------------------------------
 

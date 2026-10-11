@@ -441,16 +441,18 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
                         str(area) + "\t"
                                     "\t!emissivity, A[m²]\n")
             elif element["subtype"] == "Radiation":
-                area = unit_conversion('m**2', element["area"][1], area_unit_SI, element["area"][0])
+                area = unit_conversion("m**2", element["area"][1],  element["area"][0])
+                raw_exchange_factor = element["exchange factor"]
+                if isinstance(raw_exchange_factor, (list, tuple)):
+                    exchange_factor = float(raw_exchange_factor[0])
+                else:
+                    exchange_factor = float(raw_exchange_factor)
                 f.write("   " +
-                        str(element["ID"]) +
-                        "\t radiation \t" +
+                        str(element["ID"]) + "\t radiation \t" +
                         str(element["inlet node id"]) + "\t" +
                         str(element["exit node id"]) + "\t" +
-                        str(element["exchange factor 12"]) + "\t" +
-                        str(element["exchange factor 21"]) + "\t" +
-                        str(area) + "\t"
-                                    "\t! script-F, A[m²]\n")
+                        str(exchange_factor) + "\t" +
+                        str(area) + "\t! script-F, A[m²]\n")
             elif element["subtype"] == "Advection":
                 velocity = unit_conversion('m/s', element["velocity"][1], velocity_unit, element["velocity"][0])
                 area = unit_conversion('m**2', element["area"][1], area_unit_SI, element["area"][0])
@@ -559,6 +561,9 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
         f.write(separator)
         if enclosures:
             for enc_id, enc_data in enclosures.items():
+                if enc_data.get("injection_mode") == "branches":
+                    continue
+
                 f.write(f"Begin Radiation Enclosure {enc_id}\n")
                 f.write("   ! label\temissivity\tarea[m²]\tview factor matrix row...\n")
 

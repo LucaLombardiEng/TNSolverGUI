@@ -336,6 +336,16 @@ class MainApplication(Frame):
                 else:
                     pass
 
+                # retrieve the nodes and splash on the graphic area
+                serialized_nodes = serialized_data["Nodes"]
+                for key in serialized_nodes.keys():
+                    self.thermal_network_tab.load_node(serialized_nodes[key])
+
+                # retrieve the elements and splash on the graphic area
+                serialized_elements = serialized_data["Elements"]
+                for key in serialized_elements.keys():
+                    self.thermal_network_tab.load_element(serialized_elements[key])
+
                 # Retrieve Radiation Enclosures (Backward Compatible)
                 self.enclosure_dict.clear()
                 if 'Enclosures' in serialized_data:
@@ -360,16 +370,6 @@ class MainApplication(Frame):
 
                         self.user_enclosure_tab.enclosures = restored_enclosures
                         self.user_enclosure_tab.sync_from_network()
-
-                # retrieve the nodes and splash on the graphic area
-                serialized_nodes = serialized_data["Nodes"]
-                for key in serialized_nodes.keys():
-                    self.thermal_network_tab.load_node(serialized_nodes[key])
-
-                # retrieve the elements and splash on the graphic area
-                serialized_elements = serialized_data["Elements"]
-                for key in serialized_elements.keys():
-                    self.thermal_network_tab.load_element(serialized_elements[key])
 
             else:
                 pass

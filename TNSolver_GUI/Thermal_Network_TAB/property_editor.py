@@ -736,7 +736,7 @@ class PropertyEditor(Frame):
                 self.property_tree.insert(parent="", index=END, iid=6, text="area", values=self.dummy_elm.area,
                                           tags=('even row', 'enabled'))
                 self.property_tree.insert(parent="", index=END, iid=20, text="exchange factor",
-                                          values=self.dummy_elm.sF, tags=('odd row', 'enabled'))
+                                          values=self.dummy_elm.exchange_facotr, tags=('odd row', 'enabled'))
                 # self.property_tree.insert(parent="", index=END, iid=21, text="exchange factor 2-->1",
                 #                           values=self.dummy_elm.exchange_factor_21, tags=('even row', 'enabled'))
         elif self.dummy_elm.elmType == "Advection":
@@ -1054,7 +1054,7 @@ class PropertyEditor(Frame):
                 self.dummy_elm.emissivity = self.property_tree.item(19).get("values")[0]
             elif self.dummy_elm.elmSubType == "Radiation":
                 self.dummy_elm.area = self.property_tree.item(6).get("values")
-                self.dummy_elm.sF = self.property_tree.item(20).get("values")[0]
+                self.dummy_elm.exchange_factor = self.property_tree.item(20).get("values")[0]
         elif self.dummy_elm.elmType == "Advection":
             if self.dummy_elm.elmSubType == "Advection":
                 self.dummy_elm.material = self.property_tree.item(5).get("values")[0]
@@ -1154,7 +1154,7 @@ def show_element():
     dummy_elm.x_begin = [0, f'm']
     dummy_elm.x_end = [1, f'm']
     dummy_elm.emissivity = [1, '']
-    dummy_elm.sF = [0, '']
+    dummy_elm.exchange_factor = [0, '']
 
     prop_edit.edit_elm(dummy_elm)
 

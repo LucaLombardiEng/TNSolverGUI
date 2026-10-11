@@ -369,6 +369,13 @@ class RadiationEnclosureManager(ttk.Frame):
 
     def delete_enclosure(self):
         selected = self.combo_enclosures.get()
+        if (selected and self.main_network_ref is not None and
+                hasattr(self.main_network_ref,"remove_auto_generated_elements")):
+            removed_count = (self.main_network_ref.remove_auto_generated_elements(selected))
+
+            if removed_count:
+                self.logger(f"Removed {removed_count} generated radiation elements "
+                            f"for enclosure '{selected}'.", "INFO")
         if selected in self.enclosures:
             del self.enclosures[selected]
             if selected in self.enclosure_dict:
@@ -723,7 +730,7 @@ class RadiationEnclosureManager(ttk.Frame):
         if mode == "block":
             self._inject_as_enclosure_block(data, surfaces, areas, emissivities, matrix, B_matrix)
         elif mode == "branches":
-            self._inject_as_explicit_branches(surfaces, areas, B_matrix)
+            self._inject_as_explicit_branches(surfaces, areas, emissivities, B_matrix)
 
     def _inject_as_enclosure_block(self, data, surfaces, areas, emissivities, F_matrix, B_matrix):
         """Populates the master enclosure dictionary as a unified block for backward compatibility."""
@@ -748,72 +755,146 @@ class RadiationEnclosureManager(ttk.Frame):
             "SUCCESS"
         )
 
-    def _inject_as_explicit_branches(self, surfaces, areas, B_matrix):
-        """Generates explicit radiation branch couplings in main_network_ref."""
-        if not self.main_network_ref:
-            self.logger("Main network reference not found. Unable to inject explicit branches.", "ERROR")
+    def _inject_as_explicit_branches(self, surfaces, areas, emissivities, B_matrix):
+        """
+        Generate explicit TNSolver radiation conductors in the live GUI graph.
+        One element is generated for every active unordered surface pair.
+        """
+        network = self.main_network_ref
+
+        if network is None:
+            self.logger(
+                "Main network reference not found. "
+                "Unable to inject explicit radiation elements.",
+                "ERROR"
+            )
+            return
+
+        if not hasattr(network, "add_auto_generated_radiation_element"):
+            self.logger(
+                "The thermal network does not provide the radiation-element "
+                "injection interface.",
+                "ERROR"
+            )
             return
 
         n = len(surfaces)
-        sigma = 5.670374419e-8  # Stefan-Boltzmann constant W/(m² K⁴)
-        added_count = 0
 
-        # Also maintain block record for configuration consistency
-        self.enclosure_dict[self.active_enclosure] = {
-            "surfaces": surfaces,
-            "areas": areas,
-            "gebhart_factors": B_matrix.tolist() if hasattr(B_matrix, "tolist") else B_matrix,
-            "model": self.net_model_var.get(),
-            "injection_mode": "branches"
-        }
+        areas = np.asarray(areas, dtype=float)
+        emissivities = np.asarray(emissivities, dtype=float)
+        B_matrix = np.asarray(B_matrix, dtype=float)
 
-        # Calculate radiative coupling conductance factors C_ij = A_i * B_ij
-        for i in range(n):
-            for j in range(i + 1, n):
-                c_ij = areas[i] * B_matrix[i, j]
-                c_ji = areas[j] * B_matrix[j, i]
-                coupling_factor = 0.5 * (c_ij + c_ji)  # Enforce reciprocity symmetry
+        if areas.shape != (n,):
+            self.logger("Invalid enclosure area array.", "ERROR")
+            return
 
-                if coupling_factor > 1e-12:
-                    node_a = surfaces[i]
-                    node_b = surfaces[j]
-                    branch_id = f"Rad_{self.active_enclosure}_{node_a}_{node_b}"
-                    rad_conductance = sigma * coupling_factor
+        if emissivities.shape != (n,):
+            self.logger("Invalid enclosure emissivity array.", "ERROR")
+            return
 
-                    # Method dispatch on main_network_ref
-                    if hasattr(self.main_network_ref, "add_radiation_branch"):
-                        self.main_network_ref.add_radiation_branch(
-                            branch_id=branch_id,
-                            node_a=node_a,
-                            node_b=node_b,
-                            conductance=rad_conductance,
-                            coupling_area=coupling_factor
-                        )
-                        added_count += 1
-                    elif hasattr(self.main_network_ref, "add_branch"):
-                        self.main_network_ref.add_branch(
-                            node_a=node_a,
-                            node_b=node_b,
-                            branch_type="Radiation",
-                            value=rad_conductance,
-                            tag=self.active_enclosure
-                        )
-                        added_count += 1
-                    elif hasattr(self.main_network_ref, "branch_dict"):
-                        self.main_network_ref.branch_dict[branch_id] = {
-                            "node_a": node_a,
-                            "node_b": node_b,
-                            "type": "Radiation",
-                            "conductance": rad_conductance,
-                            "coupling_factor": coupling_factor,
-                            "enclosure": self.active_enclosure
-                        }
-                        added_count += 1
+        if B_matrix.shape != (n, n):
+            self.logger("Invalid Gebhart-factor matrix dimensions.", "ERROR")
+            return
 
-        self.logger(
-            f"Injected {added_count} explicit Gebhart radiation branches into network for '{self.active_enclosure}'.",
-            "SUCCESS"
+        live_nodes = network.node_dict
+
+        missing_nodes = [
+            node_id
+            for node_id in surfaces
+            if self._resolve_node_id(node_id, live_nodes) not in live_nodes
+        ]
+
+        if missing_nodes:
+            self.logger(
+                "Cannot inject the enclosure because these surface nodes "
+                f"do not exist in the network: {missing_nodes}",
+                "ERROR"
+            )
+            return
+
+        removed_count = network.remove_auto_generated_elements(
+            self.active_enclosure
         )
+
+        added_elements = []
+
+        try:
+            pair_index = 0
+
+            for i in range(n):
+                for j in range(i + 1, n):
+                    coupling_ij = (
+                            areas[i]
+                            * emissivities[i]
+                            * B_matrix[i, j]
+                    )
+                    coupling_ji = (
+                            areas[j]
+                            * emissivities[j]
+                            * B_matrix[j, i]
+                    )
+
+                    if np.isclose(
+                            coupling_ij,
+                            coupling_ji,
+                            rtol=1.0e-3,
+                            atol=1.0e-10):
+                        reciprocal_coupling = 0.5 * (
+                                coupling_ij + coupling_ji
+                        )
+                    else:
+                        raise ValueError(
+                            "Gebhart reciprocity failed for surfaces "
+                            f"{surfaces[i]} and {surfaces[j]}: "
+                            f"A_i*eps_i*B_ij={coupling_ij:.8e}, "
+                            f"A_j*eps_j*B_ji={coupling_ji:.8e}"
+                        )
+
+                    if reciprocal_coupling <= 1.0e-12:
+                        continue
+
+                    exchange_factor = reciprocal_coupling / areas[i]
+
+                    node_in = self._resolve_node_id(
+                        surfaces[i],
+                        live_nodes
+                    )
+                    node_out = self._resolve_node_id(
+                        surfaces[j],
+                        live_nodes
+                    )
+
+                    x, y = self._radiation_element_position(
+                        node_in,
+                        node_out,
+                        pair_index
+                    )
+
+                    element = (
+                        network.add_auto_generated_radiation_element(
+                            node_in=node_in,
+                            node_out=node_out,
+                            exchange_factor=exchange_factor,
+                            area=areas[i],
+                            enclosure_id=self.active_enclosure,
+                            x=x,
+                            y=y
+                        )
+                    )
+
+                    added_elements.append(element.elmID)
+                    pair_index += 1
+
+        except Exception as exc:
+            for elm_id in added_elements:
+                if elm_id in network.elm_dict:
+                    element = network.elm_dict[elm_id]
+
+                    if (
+                            element.nodeIn in network.node_dict
+                            and elm_id
+                            in network.node_dict[element.nodeIn].elm_list_in):
+                        network.node_dict
 
     # ------------------------------------------------------------------
     # UI HELPERS & STATE MANAGEMENT
@@ -859,3 +940,48 @@ class RadiationEnclosureManager(ttk.Frame):
         self.combo_enclosures.set(enc_id)
         self.active_enclosure = enc_id
         self._on_enclosure_selected()
+
+    @staticmethod
+    def _resolve_node_id(node_id, node_dict):
+        """Match enclosure string IDs to the actual node-dictionary key type."""
+        if node_id in node_dict:
+            return node_id
+
+        if str(node_id).isdigit():
+            numeric_id = int(node_id)
+            if numeric_id in node_dict:
+                return numeric_id
+
+        return node_id
+
+    def _radiation_element_position(self, node_in, node_out, pair_index):
+        """
+        Place the generated element near the midpoint of its two nodes.
+
+        A perpendicular displacement separates multiple radiation elements
+        connecting nearby node pairs.
+        """
+        first = self.main_network_ref.node_dict[node_in]
+        second = self.main_network_ref.node_dict[node_out]
+
+        dx = second.ctrX - first.ctrX
+        dy = second.ctrY - first.ctrY
+        length = float(np.hypot(dx, dy))
+
+        midpoint_x = 0.5 * (first.ctrX + second.ctrX)
+        midpoint_y = 0.5 * (first.ctrY + second.ctrY)
+
+        if length <= 1.0e-12:
+            return midpoint_x, midpoint_y
+
+        offset_level = pair_index % 3
+        offset_sign = -1 if pair_index % 2 else 1
+        offset = offset_sign * offset_level * 18.0
+
+        perpendicular_x = -dy / length
+        perpendicular_y = dx / length
+
+        return (
+            midpoint_x + offset * perpendicular_x,
+            midpoint_y + offset * perpendicular_y
+        )
