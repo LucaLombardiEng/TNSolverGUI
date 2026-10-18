@@ -487,23 +487,6 @@ def init(spar, nd, el, bc, src, ic, func, enc, mat, logfID, prog_report, *text_w
 
     if nenc > 0:
         for i in range(nenc):
-            """
-            # Run a quality check on the supplied view factor matrix
-            row_sum, sym_check = QCF(enc[i].A, enc[i].F)
-            for n in range(len(row_sum)):
-                if abs(1.0 - row_sum[n]) > 100.0 * np.finfo(float).eps:  # Use np.finfo for machine epsilon
-                    message = ('\nWARNING: Row sum = {}, for surface {} in enclosure {}, is not equal to 1.0.\n'.
-                               format(row_sum[n], enc[i].label[n], i + 1))
-                    user_feedback(message, prog_report, logfID, *text_widget)
-            for n in range(len(sym_check)):
-                if abs(sym_check[n]) > 100.0 * np.finfo(float).eps:
-                    message = ('\nWARNING: Symmetry check = {}, for surface {} in enclosure {}, is not equal to 0.0.\n'.
-                               format(sym_check[n], enc[i].label[n], i + 1))
-                    user_feedback(message, prog_report, logfID, *text_widget)
-            """
-            print(f"DEBUG: Enclosure {i + 1} nsurf = {enc[i].nsurf}")
-            print(f"DEBUG: Enclosure {i + 1} F matrix shape = {np.array(enc[i].F).shape}")
-            print(f"DEBUG: Enclosure {i + 1} F matrix contents = {enc[i].F}")
             # Convert A and F to numpy arrays for matrix math
             A_arr = np.array(enc[i].A)
             F_arr = np.array(enc[i].F)

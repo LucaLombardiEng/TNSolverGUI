@@ -441,7 +441,7 @@ def TNSolver_input_file_gen(filename, solution, nodes, elements, initialize, fun
                         str(area) + "\t"
                                     "\t!emissivity, A[m²]\n")
             elif element["subtype"] == "Radiation":
-                area = unit_conversion("m**2", element["area"][1],  element["area"][0])
+                area = unit_conversion("m**2", element["area"][1],  area_unit_SI, element["area"][0])
                 raw_exchange_factor = element["exchange factor"]
                 if isinstance(raw_exchange_factor, (list, tuple)):
                     exchange_factor = float(raw_exchange_factor[0])

@@ -11,8 +11,8 @@ import numpy as np
 
 node_attributes = ('node_ID', 'node_type', 'node_label', 'node_comment', 'node_material', 'node_volume', 'node_density',
                    'node_Cp', 'node_area', 'node_temperature', 'node_heat_flux', 'node_volumetric_power', 'node_power',
-                   'node_thermostatic_node', 'node_temp_on', 'node_temp_off', 'ctrX', 'ctrY', 'elm_list_in',
-                   'elm_list_out', 'color')
+                   'node_thermostatic_node', 'node_temp_on', 'node_temp_off', 'node_enclosure_id',
+                   'node_surface_geometry', 'ctrX', 'ctrY', 'elm_list_in', 'elm_list_out', 'color')
 
 
 class ThermalNode:
@@ -37,6 +37,7 @@ class ThermalNode:
         self.node_solution = None
         self.node_fn_time = 'const'
         self.node_enclosure_id = 'None'
+        self.node_surface_geometry = "Convex"
         """ graphical properties """
         self.can = canvas
         self.font = Font(root=self.can, font=gUtility.font)  # create font object
@@ -119,10 +120,10 @@ class ThermalNode:
                 solution = 'T= ' + str(round(solution, gUtility.digits)) + '°C'
             else:
                 index = np.where(self.node_solution[:, 0] == time_value)[0]
-                if index.size > 0: # Check if a match was actually found
+                if index.size > 0:  # Check if a match was actually found
                     idx = index[0]
                 else:
-                    idx = 0 # Fallback to index 0 as requested
+                    idx = 0  # Fallback to index 0 as requested
                 solution = self.node_solution[idx, 1]
                 solution = 'T= ' + str(round(solution, gUtility.digits)) + '°C'
             if self.g_solution is None:  # the solution is not yet in the graphical window
@@ -159,6 +160,7 @@ class ThermalNode:
                            "label": self.node_label,
                            "comment": self.node_comment,
                            "enclosure id": self.node_enclosure_id,
+                           "surface geometry": self.node_surface_geometry,
                            "material": self.node_material,
                            "volume": self.node_volume,
                            "density": self.node_density,
@@ -198,8 +200,8 @@ class ThermalNode:
         value = 'T= ' + str(np.round(value, gUtility.digits)) + '°C'
         self.can.itemconfig(self.g_solution, text=value)
 
-# -------------------------------------------------------------------------------------------------------------
 
+# -------------------------------------------------------------------------------------------------------------
 def clicked(event):
     clicked_id = event.widget.find_withtag('current')[0]
     elm_tag = event.widget.gettags(clicked_id)

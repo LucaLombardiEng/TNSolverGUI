@@ -85,17 +85,19 @@ class RadiationEnclosureManager(ttk.Frame):
 
         self.surface_tree = ttk.Treeview(
             left_frame,
-            columns=("node_id", "area", "emissivity"),
+            columns=("node_id", "area", "emissivity", "geometry"),
             show="headings",
             height=8
         )
         self.surface_tree.heading("node_id", text="Node ID")
         self.surface_tree.heading("area", text="Area [m²]")
         self.surface_tree.heading("emissivity", text="Eps (ε)")
+        self.surface_tree.heading("geometry", text="Geometry")
 
         self.surface_tree.column("node_id", width=80, anchor=tk.CENTER)
         self.surface_tree.column("area", width=80, anchor=tk.CENTER)
         self.surface_tree.column("emissivity", width=80, anchor=tk.CENTER)
+        self.surface_tree.column("geometry", width=90, anchor=tk.CENTER)
         self.surface_tree.pack(fill=tk.BOTH, expand=True, pady=2)
 
         # Bind double click for inline editing
@@ -127,7 +129,13 @@ class RadiationEnclosureManager(ttk.Frame):
 
         ttk.Button(matrix_actions, text="Check Reciprocity", command=self.check_reciprocity).pack(side=tk.LEFT, padx=5)
         ttk.Button(
-            matrix_actions, text="Normalize Matrix (Sum = 1.0)", command=self.normalize_matrix
+            matrix_actions, text="Normalize Matrix", command=self.normalize_matrix
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            matrix_actions, text="Auto Complete Matrix", command=self.auto_complete_matrix
+        ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            matrix_actions, text="Validate Geometry", command=self.validate_geometry
         ).pack(side=tk.LEFT, padx=5)
 
         # Build Network Injection Controls
@@ -171,14 +179,35 @@ class RadiationEnclosureManager(ttk.Frame):
         )
         rb_branches.pack(anchor=tk.W, padx=5)
 
-        # Save reference to inject button & start disabled
+        # Enclosure network controls
+        injection_buttons = ttk.Frame(build_frame)
+        injection_buttons.pack(fill=tk.X, pady=(8, 5))
+        injection_buttons.columnconfigure(0, weight=1)
+        injection_buttons.columnconfigure(1, weight=1)
+
         self.btn_inject = ttk.Button(
-            build_frame,
-            text="Inject Radiation Network into Main Solver",
-            command=self.inject_network,
-            state="disabled"
+            injection_buttons, text="Inject Enclosure",
+            command=self.inject_enclosure, state="disabled"
         )
-        self.btn_inject.pack(fill=tk.X, pady=(8, 5))
+        self.btn_inject.grid(row=0, column=0, sticky="ew", padx=(0, 2), pady=2)
+
+        self.btn_remove = ttk.Button(
+            injection_buttons, text="Remove Enclosure (from Network)",
+            command=self.remove_enclosure_from_network, state="disabled"
+        )
+        self.btn_remove.grid(row=0, column=1, sticky="ew", padx=(2, 0), pady=2)
+
+        self.btn_inject_all = ttk.Button(
+            injection_buttons, text="Inject All Enclosures",
+            command=self.inject_all_enclosures, state="disabled"
+        )
+        self.btn_inject_all.grid(row=1, column=0, sticky="ew", padx=(0, 2), pady=2)
+
+        self.btn_remove_all = ttk.Button(
+            injection_buttons, text="Remove All Enclosures",
+            command=self.remove_all_enclosures, state="disabled"
+        )
+        self.btn_remove_all.grid(row=1, column=1, sticky="ew", padx=(2, 0), pady=2)
 
         # ------------------------------------------------------------------
         # BOTTOM FRAME: Local Terminal View
@@ -194,7 +223,7 @@ class RadiationEnclosureManager(ttk.Frame):
     # INLINE TREEVIEW EDITING LOGIC
     # ------------------------------------------------------------------
     def _on_tree_double_click(self, event):
-        """Spawns an in-place entry box over the double-clicked tree cell."""
+        """Open an inline editor for area, emissivity, or surface geometry."""
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             return
 
@@ -204,71 +233,120 @@ class RadiationEnclosureManager(ttk.Frame):
 
         column = self.surface_tree.identify_column(event.x)
         col_idx = int(column[1:]) - 1
-
-        if col_idx not in (1, 2):
+        if col_idx not in (1, 2, 3):
             return
 
-        selected_iid = self.surface_tree.focus()
+        selected_iid = self.surface_tree.identify_row(event.y)
         if not selected_iid:
             return
+        self.surface_tree.focus(selected_iid)
+        self.surface_tree.selection_set(selected_iid)
 
         item_values = self.surface_tree.item(selected_iid, "values")
         node_id = item_values[0]
         current_val = item_values[col_idx]
-
         cell_bbox = self.surface_tree.bbox(selected_iid, column)
         if not cell_bbox:
             return
 
-        entry = ttk.Entry(self.surface_tree, width=cell_bbox[2])
-        entry.place(x=cell_bbox[0], y=cell_bbox[1], w=cell_bbox[2], h=cell_bbox[3])
-        entry.insert(0, current_val)
-        entry.select_range(0, tk.END)
-        entry.focus()
+        if col_idx == 3:
+            editor = ttk.Combobox(
+                self.surface_tree,
+                values=("Convex", "Concave"),
+                state="readonly"
+            )
+            editor.set(current_val if current_val in ("Convex", "Concave") else "Convex")
+        else:
+            editor = ttk.Entry(self.surface_tree)
+            editor.insert(0, current_val)
+            editor.select_range(0, tk.END)
 
-        entry.bind("<Return>", lambda e: self._save_cell_edit(entry, node_id, col_idx))
-        entry.bind("<FocusOut>", lambda e: self._save_cell_edit(entry, node_id, col_idx))
-        entry.bind("<Escape>", lambda e: entry.destroy())
+        editor.place(
+            x=cell_bbox[0], y=cell_bbox[1],
+            w=cell_bbox[2], h=cell_bbox[3]
+        )
+        editor.focus_set()
+
+        saved = {"done": False}
+
+        def save_once(_event=None):
+            if saved["done"]:
+                return
+            saved["done"] = True
+            self._save_cell_edit(editor, node_id, col_idx)
+
+        editor.bind("<Return>", save_once)
+        editor.bind("<FocusOut>", save_once)
+        editor.bind("<Escape>", lambda _event: editor.destroy())
+        if col_idx == 3:
+            editor.bind("<<ComboboxSelected>>", save_once)
 
     def _save_cell_edit(self, entry_widget, node_id, col_idx):
-        """Validates and applies the edited value to the enclosure data structure."""
+        """Validate and apply area, emissivity, or geometry edits."""
         new_text = entry_widget.get().strip()
         entry_widget.destroy()
 
-        try:
-            val = float(new_text)
-            enc_data = self.enclosures[self.active_enclosure]
-            if node_id not in enc_data["surfaces"]:
+        enc_data = self.enclosures[self.active_enclosure]
+        self._ensure_geometry_data(enc_data)
+        if node_id not in enc_data["surfaces"]:
+            return
+        idx = enc_data["surfaces"].index(node_id)
+
+        if col_idx == 3:
+            geometry = new_text.capitalize()
+
+            if geometry not in ("Convex", "Concave"):
+                messagebox.showerror(
+                    "Error",
+                    "Geometry must be Convex or Concave."
+                )
                 return
 
-            idx = enc_data["surfaces"].index(node_id)
+            enc_data["geometry"][idx] = geometry
 
-            if col_idx == 1:
-                if val <= 0:
-                    messagebox.showerror("Error", "Area must be a positive number.")
-                    return
-                enc_data["areas"][idx] = val
+            live_nodes = self.get_available_nodes()
+            node_key = int(node_id) if str(node_id).isdigit() else node_id
+            node_obj = live_nodes.get(node_key)
 
-                live_nodes = self.get_available_nodes()
-                node_obj = live_nodes.get(int(node_id) if str(node_id).isdigit() else node_id)
-                if node_obj:
-                    if hasattr(node_obj, "node_area") and isinstance(node_obj.node_area, list):
-                        node_obj.node_area[0] = val
-                    else:
-                        setattr(node_obj, "node_area", val)
+            if node_obj is not None:
+                node_obj.node_surface_geometry = geometry
 
-            elif col_idx == 2:
-                if not (0.0 <= val <= 1.0):
-                    messagebox.showerror("Error", "Emissivity (ε) must be between 0.0 and 1.0.")
-                    return
-                enc_data["eps"][idx] = val
+            if geometry == "Convex" and enc_data["F"].shape[0] > idx:
+                enc_data["F"][idx, idx] = 0.0
 
             self.invalidate_verification()
             self.refresh_surface_list()
             self.refresh_matrix_grid()
+            return
 
+        try:
+            val = float(new_text)
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid numeric value.")
+            return
+
+        if col_idx == 1:
+            if val <= 0.0:
+                messagebox.showerror("Error", "Area must be a positive number.")
+                return
+            enc_data["areas"][idx] = val
+            live_nodes = self.get_available_nodes()
+            key = int(node_id) if str(node_id).isdigit() else node_id
+            node_obj = live_nodes.get(key)
+            if node_obj:
+                if hasattr(node_obj, "node_area") and isinstance(node_obj.node_area, list):
+                    node_obj.node_area[0] = val
+                else:
+                    setattr(node_obj, "node_area", val)
+        elif col_idx == 2:
+            if not 0.0 <= val <= 1.0:
+                messagebox.showerror("Error", "Emissivity (ε) must be between 0.0 and 1.0.")
+                return
+            enc_data["eps"][idx] = val
+
+        self.invalidate_verification()
+        self.refresh_surface_list()
+        self.refresh_matrix_grid()
 
     # ------------------------------------------------------------------
     # ENCLOSURE & NODE INTEGRATION LOGIC
@@ -298,11 +376,13 @@ class RadiationEnclosureManager(ttk.Frame):
                     "surfaces": [],
                     "areas": [],
                     "eps": [],
+                    "geometry": [],
                     "F": np.empty((0, 0)),
                     "is_verified": False
                 }
 
             enc = self.enclosures[enc_id]
+            self._ensure_geometry_data(enc)
             if "eps" not in enc and "emissivities" in enc:
                 enc["eps"] = enc.pop("emissivities")
             if "F" not in enc:
@@ -324,6 +404,16 @@ class RadiationEnclosureManager(ttk.Frame):
                     enc["surfaces"].append(str_id)
                     enc["areas"].append(area_val)
                     enc["eps"].append(0.85)
+                    geometry = getattr(
+                        node,
+                        "node_surface_geometry",
+                        "Convex"
+                    )
+
+                    if geometry not in ("Convex", "Concave"):
+                        geometry = "Convex"
+
+                    enc.setdefault("geometry", []).append(geometry)
 
             self._resize_matrix(enc_id)
 
@@ -339,6 +429,18 @@ class RadiationEnclosureManager(ttk.Frame):
 
             self.refresh_surface_list()
             self.refresh_matrix_grid()
+
+    @staticmethod
+    def _ensure_geometry_data(enc):
+        """Upgrade legacy enclosure dictionaries with per-surface geometry."""
+        count = len(enc.get("surfaces", []))
+        geometry = enc.setdefault("geometry", [])
+        geometry[:] = [
+            value if value in ("Convex", "Concave") else "Convex"
+            for value in geometry[:count]
+        ]
+        if len(geometry) < count:
+            geometry.extend(["Convex"] * (count - len(geometry)))
 
     def _resize_matrix(self, enc_id):
         """Resizes View Factor Matrix while retaining existing entries."""
@@ -370,7 +472,7 @@ class RadiationEnclosureManager(ttk.Frame):
     def delete_enclosure(self):
         selected = self.combo_enclosures.get()
         if (selected and self.main_network_ref is not None and
-                hasattr(self.main_network_ref,"remove_auto_generated_elements")):
+                hasattr(self.main_network_ref, "remove_auto_generated_elements")):
             removed_count = (self.main_network_ref.remove_auto_generated_elements(selected))
 
             if removed_count:
@@ -400,58 +502,79 @@ class RadiationEnclosureManager(ttk.Frame):
     def refresh_surface_list(self):
         for item in self.surface_tree.get_children():
             self.surface_tree.delete(item)
-
         if not self.active_enclosure:
             return
 
         data = self.enclosures[self.active_enclosure]
-        for node, area, e in zip(data["surfaces"], data["areas"], data["eps"]):
-            self.surface_tree.insert("", tk.END, values=(node, area, e))
+        self._ensure_geometry_data(data)
+        for node, area, emissivity, geometry in zip(
+                data["surfaces"], data["areas"], data["eps"], data["geometry"]):
+            self.surface_tree.insert(
+                "", tk.END,
+                values=(node, area, emissivity, geometry)
+            )
 
     def refresh_matrix_grid(self):
-        """Rebuilds the View Factor Matrix grid and disables main diagonal inputs."""
+        """Rebuild the view-factor grid; concave diagonal cells are editable."""
         for child in self.matrix_container.winfo_children():
             child.destroy()
-
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             return
 
         data = self.enclosures[self.active_enclosure]
+        self._ensure_geometry_data(data)
         surfaces = data["surfaces"]
         n = len(surfaces)
         if n == 0:
             return
 
-        np.fill_diagonal(data["F"], 0.0)
-
-        ttk.Label(self.matrix_container, text="F(i,j)", font=('Helvetica', 9, 'bold')).grid(row=0, column=0, padx=4, pady=4)
-        for j, s_name in enumerate(surfaces):
-            ttk.Label(self.matrix_container, text=str(s_name), font=('Helvetica', 9, 'bold')).grid(row=0, column=j + 1, padx=4, pady=4)
-        ttk.Label(self.matrix_container, text="Row Sum", font=('Helvetica', 9, 'bold')).grid(row=0, column=n + 1, padx=8, pady=4)
+        ttk.Label(
+            self.matrix_container, text="F(i,j)",
+            font=('Helvetica', 9, 'bold')
+        ).grid(row=0, column=0, padx=4, pady=4)
+        for j, surface_name in enumerate(surfaces):
+            ttk.Label(
+                self.matrix_container, text=str(surface_name),
+                font=('Helvetica', 9, 'bold')
+            ).grid(row=0, column=j + 1, padx=4, pady=4)
+        ttk.Label(
+            self.matrix_container, text="Row Sum",
+            font=('Helvetica', 9, 'bold')
+        ).grid(row=0, column=n + 1, padx=8, pady=4)
 
         self.matrix_entries = []
         for i in range(n):
             row_entries = []
-            ttk.Label(self.matrix_container, text=str(surfaces[i]), font=('Helvetica', 9, 'bold')).grid(row=i + 1, column=0, padx=4, pady=4)
+            ttk.Label(
+                self.matrix_container, text=str(surfaces[i]),
+                font=('Helvetica', 9, 'bold')
+            ).grid(row=i + 1, column=0, padx=4, pady=4)
 
             for j in range(n):
-                e = ttk.Entry(self.matrix_container, width=8, justify="center")
-                e.insert(0, f"{data['F'][i, j]:.4f}")
-
-                if i == j:
-                    e.config(state="disabled")
+                entry = ttk.Entry(self.matrix_container, width=8, justify="center")
+                entry.insert(0, f"{data['F'][i, j]:.4f}")
+                if i == j and data["geometry"][i] == "Convex":
+                    entry.config(state="disabled")
                 else:
-                    e.bind("<FocusOut>", lambda ev, row=i, col=j, entry=e: self._on_matrix_cell_edit(row, col, entry))
-                    e.bind("<Return>", lambda ev, row=i, col=j, entry=e: self._on_matrix_cell_edit(row, col, entry))
+                    entry.bind(
+                        "<FocusOut>",
+                        lambda ev, row=i, col=j, widget=entry:
+                        self._on_matrix_cell_edit(row, col, widget)
+                    )
+                    entry.bind(
+                        "<Return>",
+                        lambda ev, row=i, col=j, widget=entry:
+                        self._on_matrix_cell_edit(row, col, widget)
+                    )
+                entry.grid(row=i + 1, column=j + 1, padx=2, pady=2)
+                row_entries.append(entry)
 
-                e.grid(row=i + 1, column=j + 1, padx=2, pady=2)
-                row_entries.append(e)
-
-            r_sum = np.sum(data['F'][i, :]) if data['F'].size > 0 else 0.0
-            sum_label = ttk.Label(self.matrix_container, text=f"{r_sum:.3f}")
-            sum_label.config(foreground="green" if np.isclose(r_sum, 1.0, atol=1e-2) else "red")
+            row_sum = float(np.sum(data["F"][i, :]))
+            sum_label = ttk.Label(self.matrix_container, text=f"{row_sum:.3f}")
+            sum_label.config(
+                foreground="green" if np.isclose(row_sum, 1.0, atol=1e-2) else "red"
+            )
             sum_label.grid(row=i + 1, column=n + 1, padx=8, pady=4)
-
             self.matrix_entries.append(row_entries)
 
     def _on_matrix_cell_edit(self, row, col, entry_widget):
@@ -529,6 +652,16 @@ class RadiationEnclosureManager(ttk.Frame):
                 enc_data["surfaces"].append(n_id)
                 enc_data["areas"].append(float(area_val) if area_val is not None else 1.0)
                 enc_data["eps"].append(0.85)
+                geometry = getattr(
+                    node_obj,
+                    "node_surface_geometry",
+                    "Convex"
+                )
+
+                enc_data.setdefault("geometry", []).append(geometry)
+
+                if node_obj is not None:
+                    node_obj.node_surface_geometry = geometry
 
             self._resize_matrix(self.active_enclosure)
             self.refresh_surface_list()
@@ -554,16 +687,19 @@ class RadiationEnclosureManager(ttk.Frame):
         enc_data = self.enclosures[self.active_enclosure]
         if node_id in enc_data["surfaces"]:
             idx = enc_data["surfaces"].index(node_id)
+            self._ensure_geometry_data(enc_data)
             enc_data["surfaces"].pop(idx)
             enc_data["areas"].pop(idx)
             enc_data["eps"].pop(idx)
+            enc_data["geometry"].pop(idx)
 
             enc_data["F"] = np.delete(np.delete(enc_data["F"], idx, axis=0), idx, axis=1)
 
             live_nodes = self.get_available_nodes()
             node_obj = live_nodes.get(int(node_id) if node_id.isdigit() else node_id)
             if node_obj:
-                setattr(node_obj, 'node_enclosure_id', "None")
+                node_obj.node_enclosure_id = "None"
+                node_obj.node_surface_geometry = "Convex"
 
             self.refresh_surface_list()
             self.refresh_matrix_grid()
@@ -593,40 +729,68 @@ class RadiationEnclosureManager(ttk.Frame):
             return np.zeros((n, n))
 
     def check_reciprocity(self):
-        """Verifies A_i * F_ij = A_j * F_ji"""
+        """Validate bounds, closure, geometry, and A_i F_ij = A_j F_ji."""
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             return
 
         data = self.enclosures[self.active_enclosure]
-        A = np.array(data["areas"])
-        F = data["F"]
+        self._ensure_geometry_data(data)
+        A = np.asarray(data["areas"], dtype=float)
+        F = np.asarray(data["F"], dtype=float)
         n = len(A)
-
-        if n < 2:
-            self.logger("Reciprocity check requires at least 2 surfaces.", "WARNING")
+        if n < 2 or F.shape != (n, n):
+            self.logger("A valid matrix with at least two surfaces is required.", "WARNING")
             self.invalidate_verification()
             return
 
         errors = []
+        if np.any(F < -1.0e-10) or np.any(F > 1.0 + 1.0e-10):
+            errors.append("One or more view factors are outside [0, 1].")
+
+        for i in range(n):
+            row_sum = float(np.sum(F[i, :]))
+            if not np.isclose(row_sum, 1.0, rtol=1e-4, atol=1e-6):
+                errors.append(
+                    f"Surface {data['surfaces'][i]}: row sum={row_sum:.6f}, expected 1.0."
+                )
+            if data["geometry"][i] == "Convex" and not np.isclose(
+                    F[i, i], 0.0, atol=1e-8):
+                errors.append(
+                    f"Surface {data['surfaces'][i]} is Convex but F_ii={F[i, i]:.6f}."
+                )
+
         for i in range(n):
             for j in range(i + 1, n):
-                q1 = A[i] * F[i, j]
-                q2 = A[j] * F[j, i]
-                if not np.isclose(q1, q2, rtol=1e-3, atol=1e-5):
+                q_ij = A[i] * F[i, j]
+                q_ji = A[j] * F[j, i]
+                if not np.isclose(q_ij, q_ji, rtol=1e-3, atol=1e-5):
+                    required_f_ji = q_ij / A[j] if A[j] > 0.0 else np.nan
                     errors.append(
                         f"Pair ({data['surfaces'][i]}, {data['surfaces'][j]}): "
-                        f"A_i*F_ij={q1:.4f} != A_j*F_ji={q2:.4f}"
+                        f"A_i*F_ij={q_ij:.6f} != A_j*F_ji={q_ji:.6f}; "
+                        f"reciprocity requires F_ji={required_f_ji:.6f}."
                     )
 
         if errors:
-            self.logger(f"Reciprocity Check Failed for '{self.active_enclosure}':", "WARNING")
-            for err in errors:
-                self.logger(f"  -> {err}", "WARNING")
+            self.logger(
+                f"Physical consistency check failed for '{self.active_enclosure}':",
+                "WARNING"
+            )
+            for error in errors:
+                self.logger(f"  -> {error}", "WARNING")
+            self.logger(
+                "Use Auto Complete Matrix or mark a self-viewing surface as Concave.",
+                "INFO"
+            )
             self.invalidate_verification()
-        else:
-            self.logger(f"Reciprocity check passed for '{self.active_enclosure}'.", "SUCCESS")
-            data["is_verified"] = True
-            self.update_inject_button_state()
+            return
+
+        data["is_verified"] = True
+        self.logger(
+            f"Physical consistency check passed for '{self.active_enclosure}'.",
+            "SUCCESS"
+        )
+        self.update_inject_button_state()
 
     def enforce_convex_surfaces(self, enc_id):
         """Ensures no self-view factors exist for flat/convex surface nodes."""
@@ -634,51 +798,159 @@ class RadiationEnclosureManager(ttk.Frame):
         np.fill_diagonal(enc["F"], 0.0)
 
     def normalize_matrix(self):
+        """Find the closest physical matrix subject to closure and reciprocity."""
         if not self.active_enclosure or self.active_enclosure not in self.enclosures:
             self.logger("Select an enclosure before normalizing.", "WARNING")
             return
 
         data = self.enclosures[self.active_enclosure]
-        F_init = np.copy(data["F"])
-        A = np.array(data["areas"], dtype=float)
+        self._ensure_geometry_data(data)
+        F_init = np.asarray(data["F"], dtype=float).copy()
+        A = np.asarray(data["areas"], dtype=float)
         n = len(A)
-
-        if n < 2 or F_init.size == 0:
+        if n < 2 or F_init.shape != (n, n):
+            self.logger("A valid matrix with at least two surfaces is required.", "WARNING")
             return
 
-        x0 = F_init.flatten()
+        x0 = np.clip(F_init.flatten(), 0.0, 1.0)
 
         def objective(x):
             return np.sum((x - x0) ** 2)
 
         constraints = []
+        for i, geometry in enumerate(data["geometry"]):
+            if geometry == "Convex":
+                constraints.append({
+                    'type': 'eq',
+                    'fun': lambda x, idx=i: x[idx * n + idx]
+                })
         for i in range(n):
-            constraints.append({'type': 'eq', 'fun': lambda x, idx=i: x[idx * n + idx]})
-        for i in range(n):
-            constraints.append({'type': 'eq', 'fun': lambda x, row=i: np.sum(x[row * n: (row + 1) * n]) - 1.0})
+            constraints.append({
+                'type': 'eq',
+                'fun': lambda x, row=i: np.sum(x[row * n:(row + 1) * n]) - 1.0
+            })
         for i in range(n):
             for j in range(i + 1, n):
-                constraints.append({'type': 'eq', 'fun': lambda x, r=i, c=j: A[r] * x[r * n + c] - A[c] * x[c * n + r]})
+                constraints.append({
+                    'type': 'eq',
+                    'fun': lambda x, r=i, c=j:
+                    A[r] * x[r * n + c] - A[c] * x[c * n + r]
+                })
 
-        bounds = [(0.0, 1.0) for _ in range(n * n)]
-
-        res = opt.minimize(
-            objective, x0, method='SLSQP', bounds=bounds, constraints=constraints,
-            options={'maxiter': 500, 'ftol': 1e-6}
+        result = opt.minimize(
+            objective,
+            x0,
+            method="SLSQP",
+            bounds=[(0.0, 1.0)] * (n * n),
+            constraints=constraints,
+            options={'maxiter': 1000, 'ftol': 1e-10}
         )
 
-        if res.success:
-            F_opt = res.x.reshape((n, n))
-            np.fill_diagonal(F_opt, 0.0)
-            data["F"] = F_opt
-            self.refresh_matrix_grid()
+        if not result.success:
             self.logger(
-                f"Successfully normalized enclosure '{self.active_enclosure}'. Bounds & reciprocity enforced.",
-                "SUCCESS"
+                f"Normalization failed for '{self.active_enclosure}': {result.message}. "
+                "Check surface geometry or add missing enclosure surfaces.",
+                "ERROR"
             )
-            self.check_reciprocity()
-        else:
-            self.logger(f"Optimization failed for '{self.active_enclosure}': {res.message}", "ERROR")
+            self.invalidate_verification()
+            return
+
+        data["F"] = result.x.reshape((n, n))
+        for i, geometry in enumerate(data["geometry"]):
+            if geometry == "Convex":
+                data["F"][i, i] = 0.0
+        self.invalidate_verification()
+        self.refresh_matrix_grid()
+        self.logger(
+            f"Normalized enclosure '{self.active_enclosure}' with closure, "
+            "reciprocity, bounds, and geometry constraints.",
+            "SUCCESS"
+        )
+        self.check_reciprocity()
+
+    def auto_complete_matrix(self):
+        """Compute the nearest physical view-factor matrix and infer concavity."""
+        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
+            self.logger("Select an enclosure before auto-completing.", "WARNING")
+            return
+
+        data = self.enclosures[self.active_enclosure]
+        self._ensure_geometry_data(data)
+        A = np.asarray(data["areas"], dtype=float)
+        F_initial = np.asarray(data["F"], dtype=float)
+        n = len(A)
+        if n < 2 or F_initial.shape != (n, n) or np.any(A <= 0.0):
+            self.logger("Positive areas and a valid square matrix are required.", "ERROR")
+            return
+
+        # First try with the geometry selected by the user.
+        self.normalize_matrix()
+        if data.get("is_verified", False):
+            return
+
+        # If infeasible, progressively allow self-view on surfaces whose rows
+        # cannot close while reciprocity is maintained. For two surfaces this
+        # identifies the larger surface automatically.
+        original_geometry = list(data["geometry"])
+        candidates = sorted(range(n), key=lambda idx: A[idx], reverse=True)
+        for idx in candidates:
+            data["geometry"][idx] = "Concave"
+            self.normalize_matrix()
+            if data.get("is_verified", False):
+                changed = [
+                    str(data["surfaces"][k]) for k in range(n)
+                    if original_geometry[k] != data["geometry"][k]
+                ]
+                if changed:
+                    self.logger(
+                        "Auto Complete inferred Concave geometry for surface(s): "
+                        + ", ".join(changed),
+                        "INFO"
+                    )
+                self.refresh_surface_list()
+                return
+
+        data["geometry"] = original_geometry
+        data["F"] = F_initial.copy()
+        self.invalidate_verification()
+        self.refresh_surface_list()
+        self.refresh_matrix_grid()
+        self.logger(
+            "Auto Complete could not find a physical matrix. Add missing enclosure "
+            "surfaces or review the entered view factors.",
+            "ERROR"
+        )
+
+    def validate_geometry(self):
+        """Report whether self-view factors agree with Convex/Concave settings."""
+        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
+            return False
+
+        data = self.enclosures[self.active_enclosure]
+        self._ensure_geometry_data(data)
+        F = np.asarray(data["F"], dtype=float)
+        valid = True
+        for i, surface in enumerate(data["surfaces"]):
+            self_view = F[i, i]
+            geometry = data["geometry"][i]
+            if geometry == "Convex" and not np.isclose(self_view, 0.0, atol=1e-8):
+                self.logger(
+                    f"Surface {surface}: Convex requires F_ii=0, found {self_view:.6f}.",
+                    "WARNING"
+                )
+                valid = False
+            elif geometry == "Concave" and self_view <= 1.0e-8:
+                self.logger(
+                    f"Surface {surface}: Concave is allowed, but F_ii is zero. "
+                    "This is mathematically valid but should match the actual geometry.",
+                    "INFO"
+                )
+            else:
+                self.logger(
+                    f"Surface {surface}: {geometry}, F_ii={self_view:.6f}, OK.",
+                    "SUCCESS"
+                )
+        return valid
 
     def clear_matrix(self):
         """Resets the view factor matrix to uniform distribution."""
@@ -705,196 +977,231 @@ class RadiationEnclosureManager(ttk.Frame):
     # INJECTION LOGIC (BLOCK VS EXPLICIT BRANCHES)
     # ------------------------------------------------------------------
     def inject_network(self):
-        """
-        Pushes active enclosure payload either as a structured Enclosure Block (backward compatible)
-        or directly as explicit Gebhart radiation branches into the Thermal Network graph.
-        """
-        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
-            self.logger("No active enclosure to inject.", "WARNING")
-            return
+        """Backward-compatible alias for injecting the active enclosure."""
+        return self.inject_enclosure()
 
-        data = self.enclosures[self.active_enclosure]
+    def _is_enclosure_injected(self, enclosure_id):
+        """Check block exports and live auto-generated radiation elements."""
+        enclosure_id = str(enclosure_id)
+        if any(str(key) == enclosure_id for key in self.enclosure_dict):
+            return True
+        network = self.main_network_ref
+        if network is None:
+            return False
+        blocks = getattr(network, "enclosure_dict", {})
+        if any(str(key) == enclosure_id for key in blocks):
+            return True
+        return any(
+            getattr(element, "is_auto_generated", False)
+            and str(getattr(element, "enclosure_id", "")) == enclosure_id
+            for element in getattr(network, "elm_dict", {}).values()
+        )
+
+    def inject_enclosure(self):
+        """Inject the active enclosure using the existing block/branch process."""
+        enclosure_id = self.active_enclosure
+        if not enclosure_id or enclosure_id not in self.enclosures:
+            self.logger("No active enclosure to inject.", "WARNING")
+            return False
+        data = self.enclosures[enclosure_id]
+        if not data.get("is_verified", False):
+            self.logger(f"Enclosure '{enclosure_id}' is not verified.", "WARNING")
+            return False
+        if self._is_enclosure_injected(enclosure_id):
+            self.logger(f"Enclosure '{enclosure_id}' is already injected; skipped.", "INFO")
+            self.update_inject_button_state()
+            return False
         surfaces = data.get("surfaces", [])
         areas = data.get("areas", [])
         emissivities = data.get("eps", [0.85] * len(surfaces))
-        matrix = data.get("F", np.empty((0, 0)))
-
-        if len(surfaces) < 2:
-            self.logger("At least 2 surfaces are required to perform network injection.", "WARNING")
-            return
-
-        # Compute Gebhart Factor Matrix B_ij
+        matrix = np.asarray(data.get("F", np.empty((0, 0))), dtype=float)
+        if len(surfaces) < 2 or matrix.shape != (len(surfaces), len(surfaces)):
+            self.logger(f"Enclosure '{enclosure_id}' has invalid surface or matrix data.", "ERROR")
+            return False
         B_matrix = self.compute_gebhart_matrix(matrix, emissivities)
         mode = self.injection_mode_var.get()
-
         if mode == "block":
-            self._inject_as_enclosure_block(data, surfaces, areas, emissivities, matrix, B_matrix)
+            success = self._inject_as_enclosure_block(
+                data, surfaces, areas, emissivities, matrix, B_matrix
+            )
         elif mode == "branches":
-            self._inject_as_explicit_branches(surfaces, areas, emissivities, B_matrix)
+            success = self._inject_as_explicit_branches(
+                surfaces, areas, emissivities, B_matrix
+            )
+        else:
+            self.logger(f"Unknown injection mode '{mode}'.", "ERROR")
+            return False
+        self.update_inject_button_state()
+        return bool(success)
 
-    def _inject_as_enclosure_block(self, data, surfaces, areas, emissivities, F_matrix, B_matrix):
-        """Populates the master enclosure dictionary as a unified block for backward compatibility."""
+    def remove_enclosure_from_network(self):
+        """Remove active enclosure exports while retaining its definition."""
+        enclosure_id = self.active_enclosure
+        if not enclosure_id:
+            self.logger("No active enclosure to remove.", "WARNING")
+            return False
+        removed_blocks = 0
+        for key in list(self.enclosure_dict):
+            if str(key) == str(enclosure_id):
+                del self.enclosure_dict[key]
+                removed_blocks += 1
+        network = self.main_network_ref
+        removed_elements = 0
+        if network is not None:
+            blocks = getattr(network, "enclosure_dict", None)
+            if isinstance(blocks, dict) and blocks is not self.enclosure_dict:
+                for key in list(blocks):
+                    if str(key) == str(enclosure_id):
+                        del blocks[key]
+                        removed_blocks += 1
+            if hasattr(network, "remove_auto_generated_elements"):
+                removed_elements = network.remove_auto_generated_elements(enclosure_id)
+        removed = removed_blocks > 0 or removed_elements > 0
+        if removed:
+            self.logger(
+                f"Enclosure '{enclosure_id}' removed from the network: "
+                f"{removed_blocks} block(s), {removed_elements} radiation element(s).",
+                "SUCCESS"
+            )
+        else:
+            self.logger(f"Enclosure '{enclosure_id}' is not present in the network.", "INFO")
+        self.update_inject_button_state()
+        return removed
+
+    def inject_all_enclosures(self):
+        """Inject all verified enclosures and skip existing exports."""
+        original = self.active_enclosure
+        counts = {"injected": 0, "existing": 0, "unverified": 0, "failed": 0}
+        try:
+            for enclosure_id, data in list(self.enclosures.items()):
+                if not data.get("is_verified", False):
+                    counts["unverified"] += 1
+                    continue
+                if self._is_enclosure_injected(enclosure_id):
+                    counts["existing"] += 1
+                    continue
+                self.active_enclosure = enclosure_id
+                if self.inject_enclosure():
+                    counts["injected"] += 1
+                else:
+                    counts["failed"] += 1
+        finally:
+            self.active_enclosure = original
+            if original in self.enclosures:
+                self.combo_enclosures.set(original)
+            self.update_inject_button_state()
+        self.logger(
+            "Inject All completed: {injected} injected, {existing} already present, "
+            "{unverified} unverified, {failed} failed.".format(**counts),
+            "SUCCESS" if counts["failed"] == 0 else "WARNING"
+        )
+
+    def remove_all_enclosures(self):
+        """Remove all exports while keeping enclosure definitions."""
+        original = self.active_enclosure
+        removed = 0
+        try:
+            for enclosure_id in list(self.enclosures):
+                if not self._is_enclosure_injected(enclosure_id):
+                    continue
+                self.active_enclosure = enclosure_id
+                if self.remove_enclosure_from_network():
+                    removed += 1
+        finally:
+            self.active_enclosure = original
+            if original in self.enclosures:
+                self.combo_enclosures.set(original)
+            self.update_inject_button_state()
+        self.logger(f"Remove All completed: {removed} enclosure(s) removed.", "SUCCESS")
+
+    def _inject_as_enclosure_block(self, data, surfaces, areas, emissivities,
+                                   F_matrix, B_matrix):
+        """Export an enclosure block and report success."""
         block_payload = {
             "surfaces": surfaces,
             "areas": areas,
             "emissivities": emissivities,
+            "geometry": data.get("geometry", ["Convex"] * len(surfaces)),
             "view_factors": F_matrix.tolist() if hasattr(F_matrix, "tolist") else F_matrix,
             "gebhart_factors": B_matrix.tolist() if hasattr(B_matrix, "tolist") else B_matrix,
             "model": self.net_model_var.get(),
             "injection_mode": "block"
         }
-
         self.enclosure_dict[self.active_enclosure] = block_payload
-
-        # Sync back to main_network_ref if it holds an enclosure dictionary
         if self.main_network_ref and hasattr(self.main_network_ref, "enclosure_dict"):
             self.main_network_ref.enclosure_dict[self.active_enclosure] = block_payload
-
         self.logger(
-            f"Enclosure block '{self.active_enclosure}' injected successfully (Backward Compatible Format).",
+            f"Enclosure '{self.active_enclosure}' injected successfully as an enclosure block.",
             "SUCCESS"
         )
+        return True
 
     def _inject_as_explicit_branches(self, surfaces, areas, emissivities, B_matrix):
-        """
-        Generate explicit TNSolver radiation conductors in the live GUI graph.
-        One element is generated for every active unordered surface pair.
-        """
+        """Draw explicit Gebhart radiation elements in the main thermal network."""
         network = self.main_network_ref
-
         if network is None:
-            self.logger(
-                "Main network reference not found. "
-                "Unable to inject explicit radiation elements.",
-                "ERROR"
-            )
-            return
-
+            self.logger("Main network reference not found.", "ERROR")
+            return False
         if not hasattr(network, "add_auto_generated_radiation_element"):
-            self.logger(
-                "The thermal network does not provide the radiation-element "
-                "injection interface.",
-                "ERROR"
-            )
-            return
-
+            self.logger("Radiation-element injection interface not found.", "ERROR")
+            return False
         n = len(surfaces)
-
         areas = np.asarray(areas, dtype=float)
         emissivities = np.asarray(emissivities, dtype=float)
         B_matrix = np.asarray(B_matrix, dtype=float)
-
-        if areas.shape != (n,):
-            self.logger("Invalid enclosure area array.", "ERROR")
-            return
-
-        if emissivities.shape != (n,):
-            self.logger("Invalid enclosure emissivity array.", "ERROR")
-            return
-
-        if B_matrix.shape != (n, n):
-            self.logger("Invalid Gebhart-factor matrix dimensions.", "ERROR")
-            return
-
+        if areas.shape != (n,) or emissivities.shape != (n,) or B_matrix.shape != (n, n):
+            self.logger("Invalid enclosure arrays for branch injection.", "ERROR")
+            return False
         live_nodes = network.node_dict
-
-        missing_nodes = [
-            node_id
-            for node_id in surfaces
-            if self._resolve_node_id(node_id, live_nodes) not in live_nodes
-        ]
-
-        if missing_nodes:
-            self.logger(
-                "Cannot inject the enclosure because these surface nodes "
-                f"do not exist in the network: {missing_nodes}",
-                "ERROR"
-            )
-            return
-
-        removed_count = network.remove_auto_generated_elements(
-            self.active_enclosure
-        )
-
-        added_elements = []
-
+        missing = [sid for sid in surfaces if self._resolve_node_id(sid, live_nodes) not in live_nodes]
+        if missing:
+            self.logger(f"Cannot inject enclosure; missing network nodes: {missing}", "ERROR")
+            return False
+        # Replacement is retained for direct calls; normal UI injection skips duplicates first.
+        replaced = network.remove_auto_generated_elements(self.active_enclosure)
+        added_ids = []
         try:
             pair_index = 0
-
             for i in range(n):
                 for j in range(i + 1, n):
-                    coupling_ij = (
-                            areas[i]
-                            * emissivities[i]
-                            * B_matrix[i, j]
-                    )
-                    coupling_ji = (
-                            areas[j]
-                            * emissivities[j]
-                            * B_matrix[j, i]
-                    )
-
-                    if np.isclose(
-                            coupling_ij,
-                            coupling_ji,
-                            rtol=1.0e-3,
-                            atol=1.0e-10):
-                        reciprocal_coupling = 0.5 * (
-                                coupling_ij + coupling_ji
-                        )
-                    else:
+                    coupling_ij = areas[i] * emissivities[i] * B_matrix[i, j]
+                    coupling_ji = areas[j] * emissivities[j] * B_matrix[j, i]
+                    if not np.isclose(coupling_ij, coupling_ji, rtol=1e-3, atol=1e-10):
                         raise ValueError(
-                            "Gebhart reciprocity failed for surfaces "
-                            f"{surfaces[i]} and {surfaces[j]}: "
-                            f"A_i*eps_i*B_ij={coupling_ij:.8e}, "
-                            f"A_j*eps_j*B_ji={coupling_ji:.8e}"
+                            f"Gebhart reciprocity failed for surfaces {surfaces[i]} and {surfaces[j]}: "
+                            f"{coupling_ij:.8e} != {coupling_ji:.8e}"
                         )
-
-                    if reciprocal_coupling <= 1.0e-12:
+                    coupling = 0.5 * (coupling_ij + coupling_ji)
+                    if coupling <= 1e-12:
                         continue
-
-                    exchange_factor = reciprocal_coupling / areas[i]
-
-                    node_in = self._resolve_node_id(
-                        surfaces[i],
-                        live_nodes
+                    node_in = self._resolve_node_id(surfaces[i], live_nodes)
+                    node_out = self._resolve_node_id(surfaces[j], live_nodes)
+                    x, y = self._radiation_element_position(node_in, node_out, pair_index)
+                    element = network.add_auto_generated_radiation_element(
+                        node_in=node_in,
+                        node_out=node_out,
+                        exchange_factor=coupling / areas[i],
+                        area=areas[i],
+                        enclosure_id=self.active_enclosure,
+                        x=x,
+                        y=y
                     )
-                    node_out = self._resolve_node_id(
-                        surfaces[j],
-                        live_nodes
-                    )
-
-                    x, y = self._radiation_element_position(
-                        node_in,
-                        node_out,
-                        pair_index
-                    )
-
-                    element = (
-                        network.add_auto_generated_radiation_element(
-                            node_in=node_in,
-                            node_out=node_out,
-                            exchange_factor=exchange_factor,
-                            area=areas[i],
-                            enclosure_id=self.active_enclosure,
-                            x=x,
-                            y=y
-                        )
-                    )
-
-                    added_elements.append(element.elmID)
+                    added_ids.append(element.elmID)
                     pair_index += 1
-
         except Exception as exc:
-            for elm_id in added_elements:
-                if elm_id in network.elm_dict:
-                    element = network.elm_dict[elm_id]
-
-                    if (
-                            element.nodeIn in network.node_dict
-                            and elm_id
-                            in network.node_dict[element.nodeIn].elm_list_in):
-                        network.node_dict
+            network.remove_auto_generated_elements(self.active_enclosure)
+            self.logger(
+                f"Injection of enclosure '{self.active_enclosure}' failed and was rolled back: {exc}",
+                "ERROR"
+            )
+            return False
+        self.logger(
+            f"Enclosure '{self.active_enclosure}' injected successfully into the main thermal network: "
+            f"{len(added_ids)} radiation element(s) drawn"
+            + (f", {replaced} previous element(s) replaced." if replaced else "."),
+            "SUCCESS"
+        )
+        return True
 
     # ------------------------------------------------------------------
     # UI HELPERS & STATE MANAGEMENT
@@ -916,16 +1223,23 @@ class RadiationEnclosureManager(ttk.Frame):
         self.update_inject_button_state()
 
     def update_inject_button_state(self):
-        """Updates the state of the Inject button based on current enclosure verification."""
-        if not self.active_enclosure or self.active_enclosure not in self.enclosures:
-            self.btn_inject.config(state="disabled")
-            return
-
-        is_verified = self.enclosures[self.active_enclosure].get("is_verified", False)
-        if is_verified:
-            self.btn_inject.config(state="normal")
-        else:
-            self.btn_inject.config(state="disabled")
+        """Update all four controls from verification and export status."""
+        active_valid = self.active_enclosure in self.enclosures
+        active_verified = bool(
+            active_valid and self.enclosures[self.active_enclosure].get("is_verified", False)
+        )
+        active_injected = bool(
+            active_valid and self._is_enclosure_injected(self.active_enclosure)
+        )
+        self.btn_inject.config(state="normal" if active_verified and not active_injected else "disabled")
+        self.btn_remove.config(state="normal" if active_injected else "disabled")
+        pending = any(
+            data.get("is_verified", False) and not self._is_enclosure_injected(enc_id)
+            for enc_id, data in self.enclosures.items()
+        )
+        exported = any(self._is_enclosure_injected(enc_id) for enc_id in self.enclosures)
+        self.btn_inject_all.config(state="normal" if pending else "disabled")
+        self.btn_remove_all.config(state="normal" if exported else "disabled")
 
     def add_enclosure(self):
         enc_id = f"Enclosure_{len(self.enclosures) + 1}"
@@ -933,6 +1247,7 @@ class RadiationEnclosureManager(ttk.Frame):
             "surfaces": [],
             "areas": [],
             "eps": [],
+            "geometry": [],
             "F": np.empty((0, 0)),
             "is_verified": False
         }

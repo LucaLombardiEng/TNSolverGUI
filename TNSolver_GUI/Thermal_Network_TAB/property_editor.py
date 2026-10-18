@@ -736,7 +736,7 @@ class PropertyEditor(Frame):
                 self.property_tree.insert(parent="", index=END, iid=6, text="area", values=self.dummy_elm.area,
                                           tags=('even row', 'enabled'))
                 self.property_tree.insert(parent="", index=END, iid=20, text="exchange factor",
-                                          values=self.dummy_elm.exchange_facotr, tags=('odd row', 'enabled'))
+                                          values=self.dummy_elm.exchange_factor, tags=('odd row', 'enabled'))
                 # self.property_tree.insert(parent="", index=END, iid=21, text="exchange factor 2-->1",
                 #                           values=self.dummy_elm.exchange_factor_21, tags=('even row', 'enabled'))
         elif self.dummy_elm.elmType == "Advection":

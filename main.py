@@ -79,7 +79,7 @@ def win_about():
 class MainApplication(Frame):
     def __init__(self, parent, *args, **kwargs):
         Frame.__init__(self, parent, *args, **kwargs)
-          # Centralized Data Store. This dictionary will hold all function definitions
+        # Centralized Data Store. This dictionary will hold all function definitions
         self.functions_dict = {'new': {'abscissa': None,
                                        'ordinate': None,
                                        'physic_property': None,
@@ -356,6 +356,7 @@ class MainApplication(Frame):
                         restored_enclosures = {}
                         for enc_id, enc_data in self.enclosure_dict.items():
                             surfaces = enc_data.get("surfaces", [])
+                            geometry = enc_data.get("geometry", ["Convex"] * len(surfaces))
                             areas = enc_data.get("areas", [])
                             eps = enc_data.get("emissivities", enc_data.get("eps", [0.85] * len(surfaces)))
                             vf_matrix = enc_data.get("view_factors", enc_data.get("F", []))
@@ -364,7 +365,10 @@ class MainApplication(Frame):
                                 "surfaces": surfaces,
                                 "areas": areas,
                                 "eps": eps,
-                                "F": np.array(vf_matrix, dtype=float) if len(vf_matrix) > 0 else np.empty((0, 0)),
+                                "geometry": geometry,
+                                "F": (np.array(vf_matrix, dtype=float)
+                                      if len(vf_matrix) > 0
+                                      else np.empty((0, 0))),
                                 "is_verified": True
                             }
 

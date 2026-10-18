@@ -494,6 +494,12 @@ class ThermalNetwork(Frame):
         new_node.node_temp_on = node["temperature on"]
         new_node.node_temp_off = node["temperature off"]
         new_node.node_enclosure_id = node.get("enclosure id", "None")
+        geometry = node.get("surface geometry", "Convex")
+
+        if geometry not in ("Convex", "Concave"):
+            geometry = "Convex"
+
+        new_node.node_surface_geometry = geometry
 
         # Use .get() for optional keys (returns None if not found)
         new_node.node_solution = node.get("solution")
@@ -502,9 +508,7 @@ class ThermalNetwork(Frame):
         if 'time function' in node:
             new_node.node_fn_time = node['time function']
         else:
-            # Assuming you meant to assign a default to fn_time, not overwrite solution
             new_node.node_fn_time = 'const'
-            # new_node.node_solution = 'const' <-- this logic is strange should get an array with a fake time and the solution
 
         new_node.elm_list_in = node["inlet element list"]
         new_node.elm_list_out = node["exit element list"]
@@ -543,8 +547,8 @@ class ThermalNetwork(Frame):
         self.elm_dict[elmID].x_end = elm["x end"]
         self.elm_dict[elmID].emissivity = elm["emissivity"]
         self.elm_dict[elmID].exchange_factor = elm["exchange factor"]
-        self.elm_dict[elmID].enclosure_id = elm.get("enclosure_id",None)
-        self.elm_dict[elmID].is_auto_generated = elm.get("is_auto_generated",False)
+        self.elm_dict[elmID].enclosure_id = elm.get("enclosure_id", None)
+        self.elm_dict[elmID].is_auto_generated = elm.get("is_auto_generated", False)
         self.elm_dict[elmID].nodeIn = elm["inlet node id"]
         self.elm_dict[elmID].nodeOut = elm["exit node id"]
 
