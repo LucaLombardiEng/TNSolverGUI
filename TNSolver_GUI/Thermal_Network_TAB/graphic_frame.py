@@ -60,7 +60,7 @@ class GraphicWindow(Frame):
         print('screen coordinates:'+str(event.x)+', '+str(event.y))
         print('Canvas coordinates:' + str(abs_x) + ', ' + str(abs_y))
 
-    def zoom(self, event):
+    def zoom_old(self, event):
         zoom_factor = 1
         step = 1 if event.delta > 0 else -1
         if (event.delta > 0 and self.zoom_level < 400) or (event.delta < 0 and self.zoom_level > 10):
@@ -87,6 +87,64 @@ class GraphicWindow(Frame):
             print('coordinates obj 1: ' + str(self.th_canvas.coords('object-1')))
             print('---------------------------------------------------')
         return zoom_factor
+
+    def zoom(self, event):
+        """Scale canvas items around the current mouse position."""
+        zoom_factor = 1.0
+
+        if event.delta > 0:
+            step = 1
+        elif event.delta < 0:
+            step = -1
+        else:
+            return zoom_factor, None, None
+
+        zoom_allowed = (
+            step > 0 and self.zoom_level < 400
+        ) or (
+            step < 0 and self.zoom_level > 10
+        )
+
+        if not zoom_allowed:
+            return zoom_factor, None, None
+
+        # Mouse position expressed in canvas coordinates.
+        # This automatically accounts for the current pan position.
+        anchor_x = self.th_canvas.canvasx(event.x)
+        anchor_y = self.th_canvas.canvasy(event.y)
+
+        zoom_factor = 1 + step / self.zoom_level
+        self.zoom_level += step
+
+        self.font_size *= zoom_factor
+
+        # Scale around the position beneath the mouse.
+        self.th_canvas.scale(
+            "all",
+            anchor_x,
+            anchor_y,
+            zoom_factor,
+            zoom_factor,
+        )
+
+        self.font.configure(size=max(1, int(self.font_size)))
+        self.th_canvas.itemconfig("text", font=self.font)
+
+        # These values are used when objects are regenerated.
+        gUtility.nodesize *= zoom_factor
+        gUtility.elmsize *= zoom_factor
+        gUtility.font_size = max(1, int(self.font_size))
+
+        bbox = self.th_canvas.bbox("all")
+        if bbox is not None:
+            self.th_canvas.configure(scrollregion=bbox)
+
+        self.offset = [
+            self.th_canvas.canvasx(0),
+            self.th_canvas.canvasy(0),
+        ]
+
+        return zoom_factor, anchor_x, anchor_y
 
 
 if __name__ == '__main__':

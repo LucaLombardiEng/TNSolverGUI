@@ -74,6 +74,7 @@ class ThermalNetwork(Frame):
 
         self.font = Font(self, font=gUtility.font)  # create font object
         self.font_size = gUtility.font_size  # keep track of exact font size which is rounded in the zoom
+        self.zoom_level = 1.0
 
         self.setup()
         self.welcome_message()
@@ -643,7 +644,7 @@ class ThermalNetwork(Frame):
         else:
             self.container.configure(cursor="arrow")
 
-    def drag_component(self, event):
+    def drag_component_old(self, event):
         """Drag a node or an element in the graphic window."""
         # Check if outside canvas area
         graph, _ = self.graph_area()
@@ -671,6 +672,39 @@ class ThermalNetwork(Frame):
         else:
             pass
 
+    def drag_component(self, event):
+        """Drag a node or element using canvas coordinates."""
+        canvas = self.centralFrame.th_canvas
+
+        x = canvas.canvasx(event.x)
+        y = canvas.canvasy(event.y)
+
+        current_items = canvas.find_withtag("current")
+        if not current_items:
+            return
+
+        clicked_id = current_items[0]
+        tags = canvas.gettags(clicked_id)
+
+        if len(tags) < 3:
+            return
+
+        item_type = tags[1]
+        item_id = int(tags[2])
+
+        if item_type == "node":
+            node = self.node_dict[item_id]
+            node.move_node(x, y)
+
+            for elm_id in node.elm_list_in:
+                self.elm_dict[int(elm_id)].update_g_conIn(x, y)
+
+            for elm_id in node.elm_list_out:
+                self.elm_dict[int(elm_id)].update_g_conOut(x, y)
+
+        elif item_type == "elm":
+            self.elm_dict[item_id].move_elm(x, y)
+
     def graph_area(self):
         # graph = [X0, X_end, Y0, Y_end]
         graph = [self.centralFrame.th_canvas.winfo_rootx(), self.centralFrame.th_canvas.winfo_rootx() +
@@ -679,11 +713,28 @@ class ThermalNetwork(Frame):
         offset = [self.leftFrame.thermal_elm.winfo_rootx(), self.leftFrame.thermal_elm.winfo_rooty()]
         return graph, offset
 
-    def on_move(self, event):
+    def on_move_old(self, event):
         # the function draws a line from the element body to the cursor until a node is selected
         if self.selected_elm is not None and self.follow_line:
             offset = [self.centralFrame.offset[0], self.centralFrame.offset[1]]
             self.draw_line(self.start_vector[0], self.start_vector[1], event.x + offset[0], event.y + offset[1])
+
+    def on_move(self, event):
+        """Draw the temporary connector in canvas coordinates."""
+        if self.selected_elm is None or not self.follow_line:
+            return
+
+        canvas = self.centralFrame.th_canvas
+
+        mouse_x = canvas.canvasx(event.x)
+        mouse_y = canvas.canvasy(event.y)
+
+        self.draw_line(
+            self.start_vector[0],
+            self.start_vector[1],
+            mouse_x,
+            mouse_y,
+        )
 
     def reconnect_elm(self, event):
         clicked_id = event.widget.find_withtag('current')[0]
@@ -842,7 +893,7 @@ class ThermalNetwork(Frame):
                 self.elm_dict[key].update_solution(time)
             self.plotFrame.add_vertical_line(time)
 
-    def zoom(self, event):
+    def zoom_old(self, event):
         zoom_factor = self.centralFrame.zoom(event)
         for nodeID in self.node_dict.keys():
             self.node_dict[nodeID].ctrX *= zoom_factor
@@ -851,6 +902,24 @@ class ThermalNetwork(Frame):
         for elm_ID in self.elm_dict.keys():
             self.elm_dict[elm_ID].ctrX *= zoom_factor
             self.elm_dict[elm_ID].ctrY *= zoom_factor
+
+    def zoom(self, event):
+        """Zoom canvas and synchronize stored graphical coordinates."""
+        zoom_factor, anchor_x, anchor_y = self.centralFrame.zoom(event)
+
+        if anchor_x is None or anchor_y is None:
+            return
+
+        if zoom_factor == 1.0:
+            return
+
+        for node in self.node_dict.values():
+            node.ctrX = anchor_x + (node.ctrX - anchor_x) * zoom_factor
+            node.ctrY = anchor_y + (node.ctrY - anchor_y) * zoom_factor
+
+        for element in self.elm_dict.values():
+            element.ctrX = anchor_x + (element.ctrX - anchor_x) * zoom_factor
+            element.ctrY = anchor_y + (element.ctrY - anchor_y) * zoom_factor
 
     def update_functions(self):
         self.bottomFrame.write_text('The dictionary of the time functions has been just updated!\n')
